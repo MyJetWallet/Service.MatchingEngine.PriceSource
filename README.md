@@ -8,3 +8,15 @@
 
 *Client library:* ![Nuget version](https://img.shields.io/nuget/v/MyJetWallet.Service.MatchingEngine.PriceSource.Client?label=MyJetWallet.Service.MatchingEngine.PriceSource.Client&style=social)
 
+# Using
+
+```csharp
+
+var client = new MyNoSqlTcpClient(hostPort, appName);
+
+builder. RegisterMatchingEnginePriceSourceClient(client)
+
+```
+
+Interfaces:
+* `ICurrentPricesCache`

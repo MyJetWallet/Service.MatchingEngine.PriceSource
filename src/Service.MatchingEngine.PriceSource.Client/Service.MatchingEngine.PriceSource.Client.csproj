@@ -7,9 +7,11 @@
   <ItemGroup>
     <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.Domain.Models\Service.MatchingEngine.PriceSource.Domain.Models.csproj" />
     <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
+    <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Autofac" Version="6.0.0" />
     <PackageReference Include="Grpc.Core.Api" Version="2.35.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.35.0" />
