@@ -27,6 +27,11 @@ namespace Service.MatchingEngine.PriceSource
     {
         private MyServiceBusTcpClient _serviceBusTcpClient;
 
+        public Startup()
+        {
+            _serviceBusTcpClient = new MyServiceBusTcpClient(() => Program.Settings.SpotServiceBusHostPort, ApplicationEnvironment.HostName);
+        }
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCodeFirstGrpc(options =>
@@ -69,8 +74,6 @@ namespace Service.MatchingEngine.PriceSource
         {
             builder.RegisterModule<SettingsModule>();
             builder.RegisterModule<ServiceModule>();
-
-            _serviceBusTcpClient = new MyServiceBusTcpClient(() => Program.Settings.SpotServiceBusHostPort, ApplicationEnvironment.HostName);
 
             builder
                 .RegisterInstance(new BidAskMyServiceBusPublisher(_serviceBusTcpClient))

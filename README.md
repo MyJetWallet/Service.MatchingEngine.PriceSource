@@ -11,11 +11,9 @@
 # Using
 
 ```csharp
+  var client = new MyNoSqlTcpClient(hostPort, appName);
 
-var client = new MyNoSqlTcpClient(hostPort, appName);
-
-builder. RegisterMatchingEnginePriceSourceClient(client)
-
+  builder.RegisterMatchingEnginePriceSourceClient(client)
 ```
 
 Interfaces:
