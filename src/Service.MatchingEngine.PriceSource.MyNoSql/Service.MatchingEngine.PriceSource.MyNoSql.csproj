@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.9" />
+    <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.2.24" />
+  </ItemGroup>
+
+</Project>

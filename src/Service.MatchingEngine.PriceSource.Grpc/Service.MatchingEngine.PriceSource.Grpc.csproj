@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.9" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.1" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="4.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Service.MatchingEngine.PriceSource.Domain.Models\Service.MatchingEngine.PriceSource.Domain.Models.csproj" />
+  </ItemGroup>
+
+</Project>

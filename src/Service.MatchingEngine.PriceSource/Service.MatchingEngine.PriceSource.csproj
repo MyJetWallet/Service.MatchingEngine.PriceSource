@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>cf560c47-517c-46f9-afa9-9221ac29a03d</UserSecretsId>
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="7.1.0" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.35.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.9" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.1" />
+    <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="1.0.0" />
+    <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.0.7" />
+    <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.2.24" />
+    <PackageReference Include="MyServiceBus.TcpClient" Version="2.2.14" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="4.1.1" />
+    <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.0.147" />
+    <PackageReference Include="SimpleTrading.BaseMetrics" Version="1.0.3" />
+    <PackageReference Include="SimpleTrading.ServiceStatusReporterConnector" Version="1.0.6" />
+    <PackageReference Include="SimpleTrading.SettingsReader" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
+    <ProjectReference Include="..\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

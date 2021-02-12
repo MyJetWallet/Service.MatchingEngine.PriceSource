@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" Version="2.35.0" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.1" />
+    <PackageReference Include="protobuf-net.Grpc" Version="1.0.147" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Client\Service.MatchingEngine.PriceSource.Client.csproj" />
+    <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
+  </ItemGroup>
+
+</Project>
