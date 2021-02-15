@@ -17,7 +17,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         private Task _process;
 
         private readonly Dictionary<string, (int, int, int)> _settings = new Dictionary<string, (int, int, int)>();
-        private readonly Dictionary<string, decimal> _last = new Dictionary<string, decimal>();
+        private readonly Dictionary<string, int> _last = new Dictionary<string, int>();
 
         public QuoteSimulator(IQuotePublisher publisher)
         {
@@ -51,7 +51,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 {
                     foreach (var setting in _settings)
                     {
-                        decimal current;
+                        int current;
 
                         lock (_last) current = _last[setting.Key];
 

@@ -12,8 +12,8 @@
     <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="MyJetWallet.Domain" Version="1.0.9" />
-    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.1" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.10" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.4" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="1.0.0" />
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.0.7" />
     <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.2.24" />
