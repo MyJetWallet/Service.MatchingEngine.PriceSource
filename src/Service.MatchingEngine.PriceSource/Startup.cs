@@ -41,7 +41,7 @@ namespace Service.MatchingEngine.PriceSource
             });
 
             services.AddHostedService<ApplicationLifetimeManager>();
-            services.AddHostedService<QuoteSimulator>();
+            //services.AddHostedService<QuoteSimulator>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

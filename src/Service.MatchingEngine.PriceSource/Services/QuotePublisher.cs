@@ -41,20 +41,26 @@ namespace Service.MatchingEngine.PriceSource.Services
                 {
                     List<BidAsk> buffer;
 
-                    if (!_buffer.Any())
-                        return;
-
                     lock (_gate)
                     {
+                        if (!_buffer.Any())
+                            return;
+
                         buffer = _buffer;
                         _buffer = new List<BidAsk>(128);
                     }
 
+                    var taskList = new List<Task>();
+
                     foreach (var group in buffer.GroupBy(e => e.Id))
                     {
                         var last = group.OrderByDescending(e => e.DateTime).First();
-                        await _writer.InsertOrReplaceAsync(BidAskNoSql.Create(last));
+                        var task = _writer.InsertOrReplaceAsync(BidAskNoSql.Create(last));
+                        taskList.Add(task.AsTask());
                     }
+
+                    if (taskList.Any())
+                        await Task.WhenAll(taskList);
 
                     await Task.Delay(WriterDelayMs);
                 }
@@ -69,6 +75,8 @@ namespace Service.MatchingEngine.PriceSource.Services
         {
             lock (_gate) _buffer.Add(quote);
             await _publisher.PublishAsync(quote);
+
+            //Console.WriteLine($"{quote.Id}: {quote.Bid} | {quote.Ask} | {quote.DateTime:O}");
         }
 
         public void Start()
