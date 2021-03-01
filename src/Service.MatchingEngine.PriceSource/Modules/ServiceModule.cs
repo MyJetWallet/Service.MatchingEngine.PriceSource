@@ -1,6 +1,8 @@
 ﻿using System;
 using Autofac;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.MatchingEngine.Grpc;
+using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
 using MyServiceBus.TcpClient;
@@ -29,9 +31,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             serviceBusClient.PlugPacketHandleExceptions(ex => ServiceBusLogger.LogError(ex as Exception, "Exception in MyServiceBusTcpClient"));
             serviceBusClient.PlugSocketLogs((context, msg) => ServiceBusLogger.LogInformation($"MyServiceBusTcpClient[Socket {context?.Id}|{context?.Connected}|{context?.Inited}] {msg}"));
             builder.RegisterInstance(serviceBusClient).AsSelf().SingleInstance();
-
-
-
+            
             builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-1", false);
 
             builder.RegisterType<OutgoingEventJob>().AutoActivate().SingleInstance();
@@ -39,8 +39,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             builder
                 .RegisterType<OrderBookAggregator>()
                 .As<IOrderBookAggregator>()
-                .As<IStartable>()
-                .AutoActivate()
+                .AsSelf()
                 .SingleInstance();
 
             builder
@@ -50,7 +49,16 @@ namespace Service.MatchingEngine.PriceSource.Modules
                 .AutoActivate()
                 .SingleInstance();
 
+            builder.RegisterMatchingEngineGrpcClient();
+
             RegisterMyNoSqlWriter<OrderBookNoSql>(builder, OrderBookNoSql.TableName);
+
+            var factory = new MatchingEngineClientFactory(null, null, null, Program.Settings.OrderBookServiceGrpcUrl);
+
+            builder
+                .RegisterInstance(factory.GetOrderBookService())
+                .As<IOrderBookServiceClient>()
+                .SingleInstance();
         }
 
         private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)

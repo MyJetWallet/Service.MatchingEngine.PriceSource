@@ -4,9 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
-using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
+using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
@@ -15,23 +16,27 @@ using Service.MatchingEngine.PriceSource.Services;
 
 namespace Service.MatchingEngine.PriceSource.Jobs
 {
-    public class OrderBookAggregator : IOrderBookAggregator, IStartable, IDisposable
+    public class OrderBookAggregator : IOrderBookAggregator, IDisposable
     {
         private readonly ILogger<OrderBookAggregator> _logger;
         private readonly IMyNoSqlServerDataWriter<OrderBookNoSql> _writer;
         private readonly IQuotePublisher _publisher;
+        private readonly IOrderBookServiceClient _bookServiceClient;
         private readonly object _gate = new object();
         private readonly MyTaskTimer _timer;
+        private bool _isInit = false;
 
         private readonly Dictionary<string, Dictionary<string, OrderBookManager>> _data = new Dictionary<string, Dictionary<string, OrderBookManager>>();
 
         private Dictionary<(string, string), string> _changedList = new Dictionary<(string, string), string>();
 
-        public OrderBookAggregator(ILogger<OrderBookAggregator> logger, IMyNoSqlServerDataWriter<OrderBookNoSql> writer, IQuotePublisher publisher)
+        public OrderBookAggregator(ILogger<OrderBookAggregator> logger, IMyNoSqlServerDataWriter<OrderBookNoSql> writer, IQuotePublisher publisher,
+            IOrderBookServiceClient bookServiceClient)
         {
             _logger = logger;
             _writer = writer;
             _publisher = publisher;
+            _bookServiceClient = bookServiceClient;
             _timer = new MyTaskTimer(nameof(OrderBookAggregator), TimeSpan.FromMilliseconds(1000),  logger, DoProcess);
         }
 
@@ -69,18 +74,18 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
                 await Task.WhenAll(tasks);
 
-                //foreach (var book in books)
-                //{
-                //    Console.WriteLine($"Book {book.RowKey}");
-                //    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
-                //    {
-                //        Console.WriteLine($"\t{level.Volume}\t{level.Price}\t");
-                //    }
-                //    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
-                //    {
-                //        Console.WriteLine($"\t\t{level.Price}\t{level.Volume}");
-                //    }
-                //}
+                foreach (var book in books)
+                {
+                    Console.WriteLine($"Book {book.RowKey}");
+                    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
+                    {
+                        Console.WriteLine($"\t{level.Volume}\t{level.Price}\t");
+                    }
+                    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
+                    {
+                        Console.WriteLine($"\t\t{level.Price}\t{level.Volume}");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -104,6 +109,19 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         public async Task RegisterOrderUpdates(List<OrderBookOrder> updates)
         {
+            if (!_isInit)
+                InitFromMe();
+
+            var prices = InternalRegisterUpdates(updates);
+
+            foreach (var bidAsk in prices)
+            {
+                await _publisher.Register(bidAsk);
+            }
+        }
+
+        private List<BidAsk> InternalRegisterUpdates(List<OrderBookOrder> updates)
+        {
             List<BidAsk> prices = new List<BidAsk>();
 
             lock (_gate)
@@ -125,10 +143,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 }
             }
 
-            foreach (var bidAsk in prices)
-            {
-                await _publisher.Register(bidAsk);
-            }
+            return prices;
         }
 
         private OrderBookManager GetManager(string broker, string symbol)
@@ -151,6 +166,45 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         public void Start()
         {
             _timer.Start();
+        }
+
+        private void InitFromMe()
+        {
+            _logger.LogInformation($"OrderBookAggregator stat init process");
+
+            var books = _bookServiceClient.OrderBookSnapshots();
+
+            var sw = new Stopwatch();
+            sw.Start();
+            lock (_gate)
+            {
+                var list = new List<OrderBookOrder>();
+
+                foreach (var snapshot in books)
+                {
+                    foreach (var level in snapshot.Levels)
+                    {
+                        list.Add(new OrderBookOrder(snapshot.BrokerId, "", level.WalletId, level.OrderId,
+                            decimal.Parse(level.Price),
+                            decimal.Parse(level.Volume),
+                            snapshot.IsBuy ? OrderSide.Buy : OrderSide.Sell,
+                            0,
+                            snapshot.Asset,
+                            snapshot.Timestamp.ToDateTime(),
+                            true));
+                    }
+
+                    _changedList[(snapshot.BrokerId, snapshot.Asset)] = snapshot.Asset;
+                }
+
+                InternalRegisterUpdates(list);
+            }
+
+            _isInit = true;
+
+            sw.Stop();
+
+            _logger.LogInformation($"OrderBookAggregator init time: {sw.Elapsed.ToString()}");
         }
 
         public void Dispose()

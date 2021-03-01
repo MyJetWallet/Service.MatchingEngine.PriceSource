@@ -13,5 +13,10 @@ namespace Service.MatchingEngine.PriceSource.Settings
 
         [YamlProperty("MatchingEnginePriceSource.MyNoSqlWriterUrl")]
         public string MyNoSqlWriterUrl { get; set; }
+
+        [YamlProperty("MatchingEnginePriceSource.MatchingEngine.OrderBookServiceGrpcUrl")]
+        public string OrderBookServiceGrpcUrl { get; set; }
+
+        
     }
 }

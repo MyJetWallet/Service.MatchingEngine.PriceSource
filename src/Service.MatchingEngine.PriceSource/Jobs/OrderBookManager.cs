@@ -15,7 +15,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         private OrderBookOrder _ask;
         private OrderBookOrder _bid;
         private BidAsk _bidAsk;
-        private long _lastSequenceId;
+        private long _lastSequenceId= -1;
 
         public string BrokerId { get; }
 
