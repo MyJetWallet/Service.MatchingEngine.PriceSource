@@ -73,6 +73,11 @@ namespace Service.MatchingEngine.PriceSource.Services
 
         public async Task Register(BidAsk quote)
         {
+            if (quote.Ask > 0 && quote.Bid >= quote.Ask)
+            {
+                return;
+            }
+
             lock (_gate) _buffer.Add(quote);
             await _publisher.PublishAsync(quote);
 
