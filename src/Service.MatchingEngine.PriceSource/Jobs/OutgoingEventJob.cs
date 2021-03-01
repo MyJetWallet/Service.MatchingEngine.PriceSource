@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
+using Service.MatchingEngine.PriceSource.Services;
 
 namespace Service.MatchingEngine.PriceSource.Jobs
 {
