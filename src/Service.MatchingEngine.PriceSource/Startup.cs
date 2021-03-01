@@ -25,11 +25,8 @@ namespace Service.MatchingEngine.PriceSource
 {
     public class Startup
     {
-        private MyServiceBusTcpClient _serviceBusTcpClient;
-
         public Startup()
         {
-            _serviceBusTcpClient = new MyServiceBusTcpClient(() => Program.Settings.SpotServiceBusHostPort, ApplicationEnvironment.HostName);
         }
 
         public void ConfigureServices(IServiceCollection services)
@@ -66,24 +63,12 @@ namespace Service.MatchingEngine.PriceSource
                     await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
                 });
             });
-
-            _serviceBusTcpClient.Start();
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
         {
             builder.RegisterModule<SettingsModule>();
             builder.RegisterModule<ServiceModule>();
-
-            builder
-                .RegisterInstance(new BidAskMyServiceBusPublisher(_serviceBusTcpClient))
-                .As<IPublisher<BidAsk>>()
-                .SingleInstance();
-
-            builder.Register(ctx => new MyNoSqlServer.DataWriter.MyNoSqlServerDataWriter<BidAskNoSql>(
-                    Program.ReloadedSettings(model => model.MyNoSqlWriterUrl), BidAskNoSql.TableName, true))
-                .As<IMyNoSqlServerDataWriter<BidAskNoSql>>()
-                .SingleInstance();
         }
     }
 }

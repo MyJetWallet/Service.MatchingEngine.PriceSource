@@ -1,6 +1,10 @@
 ﻿using System;
 using Autofac;
+using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Domain.Prices;
+using MyJetWallet.Domain.ServiceBus;
+using MyJetWallet.Domain.ServiceBus.PublisherSubscriber.BidAsks;
 using MyJetWallet.MatchingEngine.Grpc;
 using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service;
@@ -53,12 +57,17 @@ namespace Service.MatchingEngine.PriceSource.Modules
 
             RegisterMyNoSqlWriter<OrderBookNoSql>(builder, OrderBookNoSql.TableName);
 
-            var factory = new MatchingEngineClientFactory(null, null, null, Program.Settings.OrderBookServiceGrpcUrl);
+            builder.RegisterMatchingEngineGrpcClient(orderBookServiceGrpcUrl: Program.Settings.OrderBookServiceGrpcUrl);
 
-            builder
-                .RegisterInstance(factory.GetOrderBookService())
-                .As<IOrderBookServiceClient>()
+            builder.RegisterBidAskPublisher(serviceBusClient);
+            builder.RegisterTradeVolumePublisher(serviceBusClient);
+
+
+            builder.Register(ctx => new MyNoSqlServer.DataWriter.MyNoSqlServerDataWriter<BidAskNoSql>(
+                    Program.ReloadedSettings(model => model.MyNoSqlWriterUrl), BidAskNoSql.TableName, true))
+                .As<IMyNoSqlServerDataWriter<BidAskNoSql>>()
                 .SingleInstance();
+
         }
 
         private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MyJetWallet.Domain" Version="1.0.19" />
-    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.4" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.20" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.5" />
   </ItemGroup>
 
 </Project>

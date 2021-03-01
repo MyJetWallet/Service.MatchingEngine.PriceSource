@@ -74,18 +74,18 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
                 await Task.WhenAll(tasks);
 
-                foreach (var book in books)
-                {
-                    Console.WriteLine($"Book {book.RowKey}");
-                    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
-                    {
-                        Console.WriteLine($"\t{level.Volume}\t{level.Price}\t");
-                    }
-                    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
-                    {
-                        Console.WriteLine($"\t\t{level.Price}\t{level.Volume}");
-                    }
-                }
+                //foreach (var book in books)
+                //{
+                //    Console.WriteLine($"Book {book.RowKey}");
+                //    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
+                //    {
+                //        Console.WriteLine($"\t{level.Volume}\t{level.Price}\t");
+                //    }
+                //    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
+                //    {
+                //        Console.WriteLine($"\t\t{level.Price}\t{level.Volume}");
+                //    }
+                //}
             }
             catch (Exception ex)
             {

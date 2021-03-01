@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
+using MyJetWallet.Domain.Prices;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 
 namespace Service.MatchingEngine.PriceSource.Jobs
@@ -58,20 +59,25 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                                 i.Side,
                                 t.Price,
                                 t.BaseVolume,
-                                Timestamp = t.Timestamp.ToDateTime()
+                                Timestamp = t.Timestamp.ToDateTime(),
+                                i.BrokerId,
+                                i.AccountId
                             }))
 
-                        .Select(e => new TradeSignalVolume(
-                            double.Parse(e.Price),
-                            double.Parse(e.BaseVolume),
-                            e.AssetPairId,
-                            e.Timestamp,
-                            MapSide(e.Side)))
+                        .Select(e => new TradeVolume()
+                        {
+                            Id = e.AssetPairId,
+                            LiquidityProvider = e.BrokerId,
+                            Price = double.Parse(e.Price),
+                            Volume = double.Parse(e.BaseVolume),
+                            DateTime = e.Timestamp
+                        })
 
                         .ToList();
 
 
-                _tradeVolumeAggregator.RegisterTrades(trades);
+                var tradesTask = _tradeVolumeAggregator.RegisterTrades(trades);
+                taskList.Add(tradesTask);
 
                 var task = _orderBookAggregator.RegisterOrderUpdates(updatedOrders);
                 taskList.Add(task);

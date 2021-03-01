@@ -12,9 +12,9 @@
     <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="MyJetWallet.Domain" Version="1.0.19" />
-    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.4" />
-    <PackageReference Include="MyJetWallet.MatchingEngine.Grpc" Version="1.1.0" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.20" />
+    <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.5" />
+    <PackageReference Include="MyJetWallet.MatchingEngine.Grpc" Version="1.1.1" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="1.0.0" />
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.0.8" />
     <PackageReference Include="MyJetWallet.Service.MatchingEngine.EventBridge.ServiceBus" Version="1.0.5" />

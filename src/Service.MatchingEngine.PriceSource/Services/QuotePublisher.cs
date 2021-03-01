@@ -76,7 +76,7 @@ namespace Service.MatchingEngine.PriceSource.Services
             lock (_gate) _buffer.Add(quote);
             await _publisher.PublishAsync(quote);
 
-            //Console.WriteLine($"{quote.Id}: {quote.Bid} | {quote.Ask} | {quote.DateTime:O}");
+            _logger.LogDebug("Generate price: {brokerId}:{symbol} {bid} | {ask} | {timestampText}",  quote.LiquidityProvider, quote.Id, quote.Bid, quote.Ask, quote.DateTime.ToString("O"));
         }
 
         public void Start()
