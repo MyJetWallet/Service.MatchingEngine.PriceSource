@@ -31,7 +31,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         {
             var taskList = new List<Task>();
 
-            foreach (var outgoingEvent in events.Where(e => e.Header.SequenceNumber > _lastSequenceId && e.Orders.Any(e => e.AssetPairId=="BTCEUR")))
+            foreach (var outgoingEvent in events.Where(e => e.Header.SequenceNumber > _lastSequenceId))
             {
                 var updatedOrders = outgoingEvent
                     .Orders
