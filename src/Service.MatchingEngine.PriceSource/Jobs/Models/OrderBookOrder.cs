@@ -5,10 +5,9 @@ namespace Service.MatchingEngine.PriceSource.Jobs.Models
 {
     public class OrderBookOrder
     {
-        public OrderBookOrder(string brokerId, string clientId, string walletId, string orderId, decimal price, decimal volume, OrderSide side, long sequenceNumber, string symbol, DateTime timestamp, bool isActive)
+        public OrderBookOrder(string brokerId, string walletId, string orderId, decimal price, decimal volume, OrderSide side, long sequenceNumber, string symbol, DateTime timestamp, bool isActive)
         {
             BrokerId = brokerId;
-            ClientId = clientId;
             WalletId = walletId;
             OrderId = orderId;
             Price = price;
@@ -28,7 +27,6 @@ namespace Service.MatchingEngine.PriceSource.Jobs.Models
         }
 
         public string BrokerId { get; set; }
-        public string ClientId { get; set; }
         public string WalletId { get; set; }
         public string OrderId { get; set; }
 

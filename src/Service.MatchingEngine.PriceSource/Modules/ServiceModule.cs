@@ -63,11 +63,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             builder.RegisterTradeVolumePublisher(serviceBusClient);
 
 
-            builder.Register(ctx => new MyNoSqlServer.DataWriter.MyNoSqlServerDataWriter<BidAskNoSql>(
-                    Program.ReloadedSettings(model => model.MyNoSqlWriterUrl), BidAskNoSql.TableName, true))
-                .As<IMyNoSqlServerDataWriter<BidAskNoSql>>()
-                .SingleInstance();
-
+            RegisterMyNoSqlWriter<BidAskNoSql>(builder, BidAskNoSql.TableName);
         }
 
         private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)

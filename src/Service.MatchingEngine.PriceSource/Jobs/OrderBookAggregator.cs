@@ -67,7 +67,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 var index = 0;
                 while (index < books.Count)
                 {
-                    var task = _writer.BulkInsertOrReplaceAsync(books.Skip(10).Take(10)).AsTask();
+                    var task = _writer.BulkInsertOrReplaceAsync(books.Skip(index).Take(10)).AsTask();
                     index += 10;
                     tasks.Add(task);
                 }
@@ -109,10 +109,15 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         public async Task RegisterOrderUpdates(List<OrderBookOrder> updates)
         {
+            List<BidAsk> prices = new List<BidAsk>();
             if (!_isInit)
-                InitFromMe();
+            {
+                var initPrices = InitFromMe();
+                prices.AddRange(initPrices);
+            }
 
-            var prices = InternalRegisterUpdates(updates);
+            var updatePrices = InternalRegisterUpdates(updates);
+            prices.AddRange(updatePrices);
 
             foreach (var bidAsk in prices)
             {
@@ -168,7 +173,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             _timer.Start();
         }
 
-        private void InitFromMe()
+        private List<BidAsk> InitFromMe()
         {
             _logger.LogInformation($"OrderBookAggregator stat init process");
 
@@ -176,6 +181,9 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
             var sw = new Stopwatch();
             sw.Start();
+
+            List<BidAsk> prices;
+
             lock (_gate)
             {
                 var list = new List<OrderBookOrder>();
@@ -184,7 +192,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 {
                     foreach (var level in snapshot.Levels)
                     {
-                        list.Add(new OrderBookOrder(snapshot.BrokerId, "", level.WalletId, level.OrderId,
+                        list.Add(new OrderBookOrder(snapshot.BrokerId, level.WalletId, level.OrderId,
                             decimal.Parse(level.Price),
                             decimal.Parse(level.Volume),
                             snapshot.IsBuy ? OrderSide.Buy : OrderSide.Sell,
@@ -197,7 +205,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                     _changedList[(snapshot.BrokerId, snapshot.Asset)] = snapshot.Asset;
                 }
 
-                InternalRegisterUpdates(list);
+                prices = InternalRegisterUpdates(list);
             }
 
             _isInit = true;
@@ -205,6 +213,8 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             sw.Stop();
 
             _logger.LogInformation($"OrderBookAggregator init time: {sw.Elapsed.ToString()}");
+
+            return prices;
         }
 
         public void Dispose()

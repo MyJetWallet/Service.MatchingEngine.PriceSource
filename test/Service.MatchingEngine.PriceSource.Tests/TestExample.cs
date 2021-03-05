@@ -36,7 +36,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
         {
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "1", 80014, -0.001m, OrderSide.Sell, 1, symbol,
+                new OrderBookOrder(broker, wallet1, "1", 80014, -0.001m, OrderSide.Sell, 1, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -47,7 +47,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "2", 80000, -0.001m, OrderSide.Sell, 2, symbol,
+                new OrderBookOrder(broker, wallet1, "2", 80000, -0.001m, OrderSide.Sell, 2, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -58,9 +58,9 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "2", 80000, -0.001m, OrderSide.Sell, 3, symbol,
+                new OrderBookOrder(broker, wallet1, "2", 80000, -0.001m, OrderSide.Sell, 3, symbol,
                     DateTime.UtcNow, false),
-                new OrderBookOrder(broker, client2, wallet2, "3", 80000, 0.001m, OrderSide.Buy, 3, symbol,
+                new OrderBookOrder(broker, wallet2, "3", 80000, 0.001m, OrderSide.Buy, 3, symbol,
                     DateTime.UtcNow, false),
             });
 
@@ -71,7 +71,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "4", 79980, 0.001m, OrderSide.Buy, 4, symbol,
+                new OrderBookOrder(broker, wallet2, "4", 79980, 0.001m, OrderSide.Buy, 4, symbol,
                     DateTime.UtcNow, true),
             });
 
@@ -98,7 +98,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
+                new OrderBookOrder(broker, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -109,7 +109,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -120,9 +120,9 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol,
                     DateTime.UtcNow, false),
-                new OrderBookOrder(broker, client2, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
+                new OrderBookOrder(broker, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
                     DateTime.UtcNow, false),
             });
 
@@ -133,7 +133,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "8", 79970, 0.001m, OrderSide.Buy, 8, symbol,
+                new OrderBookOrder(broker, wallet2, "8", 79970, 0.001m, OrderSide.Buy, 8, symbol,
                     DateTime.UtcNow, true),
             });
 
@@ -150,7 +150,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
+                new OrderBookOrder(broker, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -161,7 +161,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -172,9 +172,9 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol,
                     DateTime.UtcNow, false),
-                new OrderBookOrder(broker, client2, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
+                new OrderBookOrder(broker, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
                     DateTime.UtcNow, false),
             });
 
@@ -185,7 +185,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol,
+                new OrderBookOrder(broker, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol,
                     DateTime.UtcNow, true),
             });
 
@@ -202,7 +202,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
+                new OrderBookOrder(broker, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -213,7 +213,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.003m, OrderSide.Sell, 6, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.003m, OrderSide.Sell, 6, symbol,
                     DateTime.UtcNow, true)
             });
 
@@ -224,9 +224,9 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.002m, OrderSide.Sell, 7, symbol,
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.002m, OrderSide.Sell, 7, symbol,
                     DateTime.UtcNow, true),
-                new OrderBookOrder(broker, client2, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
+                new OrderBookOrder(broker, wallet2, "7", 80001, 0.001m, OrderSide.Buy, 7, symbol,
                     DateTime.UtcNow, false),
             });
 
@@ -237,7 +237,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol,
+                new OrderBookOrder(broker, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol,
                     DateTime.UtcNow, true),
             });
 
@@ -255,7 +255,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol, DateTime.UtcNow, true)
+                new OrderBookOrder(broker, wallet1, "5", 80020, -0.001m, OrderSide.Sell, 5, symbol, DateTime.UtcNow, true)
             });
 
             Assert.AreEqual(priceUpdated, false);
@@ -265,7 +265,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol, DateTime.UtcNow, true)
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 6, symbol, DateTime.UtcNow, true)
             });
 
             Assert.AreEqual(priceUpdated, true);
@@ -275,8 +275,8 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol, DateTime.UtcNow, false),
-                new OrderBookOrder(broker, client2, wallet2, "7", 80001, 0.002m, OrderSide.Buy, 7, symbol, DateTime.UtcNow, true),
+                new OrderBookOrder(broker, wallet1, "6", 80001, -0.001m, OrderSide.Sell, 7, symbol, DateTime.UtcNow, false),
+                new OrderBookOrder(broker, wallet2, "7", 80001, 0.002m, OrderSide.Buy, 7, symbol, DateTime.UtcNow, true),
             });
 
             Assert.AreEqual(priceUpdated, true);
@@ -286,7 +286,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol, DateTime.UtcNow, true),
+                new OrderBookOrder(broker, wallet2, "8", 79985, 0.001m, OrderSide.Buy, 8, symbol, DateTime.UtcNow, true),
             });
 
             Assert.AreEqual(priceUpdated, false);
@@ -302,7 +302,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             var priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client1, wallet1, "1", 80020, -0.001m, OrderSide.Sell, 5, symbol, DateTime.UtcNow, false)
+                new OrderBookOrder(broker, wallet1, "1", 80020, -0.001m, OrderSide.Sell, 5, symbol, DateTime.UtcNow, false)
             });
 
             Assert.AreEqual(priceUpdated, true);
@@ -312,7 +312,7 @@ namespace Service.MatchingEngine.PriceSource.Tests
 
             priceUpdated = manager.RegisterOrderUpdate(new List<OrderBookOrder>()
             {
-                new OrderBookOrder(broker, client2, wallet2, "4", 79980, 0.001m, OrderSide.Buy, 6, symbol, DateTime.UtcNow, false),
+                new OrderBookOrder(broker, wallet2, "4", 79980, 0.001m, OrderSide.Buy, 6, symbol, DateTime.UtcNow, false),
             });
 
             Assert.AreEqual(priceUpdated, true);

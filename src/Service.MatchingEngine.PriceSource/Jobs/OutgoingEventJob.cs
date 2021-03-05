@@ -37,7 +37,6 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                     .Orders
                     .Select(e => new OrderBookOrder(
                         e.BrokerId,
-                        e.AccountId,
                         e.WalletId,
                         e.ExternalId,
                         decimal.Parse(e.Price),

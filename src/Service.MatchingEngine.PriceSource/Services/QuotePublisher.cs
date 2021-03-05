@@ -7,6 +7,7 @@ using Autofac;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Prices;
+using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 
@@ -19,11 +20,11 @@ namespace Service.MatchingEngine.PriceSource.Services
         private readonly IPublisher<BidAsk> _publisher;
         private readonly IMyNoSqlServerDataWriter<BidAskNoSql> _writer;
         private readonly ILogger<QuotePublisher> _logger;
-        private CancellationTokenSource _token = new CancellationTokenSource();
-        private Task _processWriter;
         private readonly object _gate = new object();
 
         private List<BidAsk> _buffer = new List<BidAsk>();
+
+        private readonly MyTaskTimer _timer;
 
 
         public QuotePublisher(IPublisher<BidAsk> publisher, IMyNoSqlServerDataWriter<BidAskNoSql> writer, ILogger<QuotePublisher> logger)
@@ -31,44 +32,35 @@ namespace Service.MatchingEngine.PriceSource.Services
             _publisher = publisher;
             _writer = writer;
             _logger = logger;
+            _timer = new MyTaskTimer(nameof(QuotePublisher), TimeSpan.FromMilliseconds(WriterDelayMs), logger, DoProcess);
         }
 
         private async Task DoProcess()
         {
-            while (Equals(!_token.IsCancellationRequested))
+            List<BidAsk> buffer;
+
+            lock (_gate)
             {
-                try
-                {
-                    List<BidAsk> buffer;
+                if (!_buffer.Any())
+                    return;
 
-                    lock (_gate)
-                    {
-                        if (!_buffer.Any())
-                            return;
-
-                        buffer = _buffer;
-                        _buffer = new List<BidAsk>(128);
-                    }
-
-                    var taskList = new List<Task>();
-
-                    foreach (var group in buffer.GroupBy(e => e.Id))
-                    {
-                        var last = group.OrderByDescending(e => e.DateTime).First();
-                        var task = _writer.InsertOrReplaceAsync(BidAskNoSql.Create(last));
-                        taskList.Add(task.AsTask());
-                    }
-
-                    if (taskList.Any())
-                        await Task.WhenAll(taskList);
-
-                    await Task.Delay(WriterDelayMs);
-                }
-                catch(Exception ex)
-                {
-                    _logger.LogError(ex, "QuotePublisher unexpected exception");
-                }
+                buffer = _buffer;
+                _buffer = new List<BidAsk>(128);
             }
+
+            var taskList = new List<Task>();
+
+            foreach (var group in buffer.GroupBy(e => e.Id))
+            {
+                var last = @group.OrderByDescending(e => e.DateTime).First();
+                var task = _writer.InsertOrReplaceAsync(BidAskNoSql.Create(last));
+                taskList.Add(task.AsTask());
+
+                _logger.LogInformation("Quote: {brokerId}:{symbol} {bid} | {ask} | {timestampText}", last.LiquidityProvider, last.Id, last.Bid, last.Ask, last.DateTime.ToString("O"));
+            }
+
+            if (taskList.Any())
+                await Task.WhenAll(taskList);
         }
 
         public async Task Register(BidAsk quote)
@@ -86,13 +78,12 @@ namespace Service.MatchingEngine.PriceSource.Services
 
         public void Start()
         {
-            _processWriter = Task.Run(DoProcess, _token.Token);
+            _timer.Start();
         }
 
         public void Dispose()
         {
-            _token.Cancel();
-            _processWriter.Wait();
+            _timer.Stop();
         }
     }
 }
