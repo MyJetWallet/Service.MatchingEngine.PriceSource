@@ -30,7 +30,10 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         private Dictionary<(string, string), string> _changedList = new Dictionary<(string, string), string>();
 
-        public OrderBookAggregator(ILogger<OrderBookAggregator> logger, IMyNoSqlServerDataWriter<OrderBookNoSql> writer, IQuotePublisher publisher,
+        public OrderBookAggregator(
+            ILogger<OrderBookAggregator> logger, 
+            IMyNoSqlServerDataWriter<OrderBookNoSql> writer, 
+            IQuotePublisher publisher,
             IOrderBookServiceClient bookServiceClient)
         {
             _logger = logger;

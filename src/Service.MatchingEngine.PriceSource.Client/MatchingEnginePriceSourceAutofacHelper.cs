@@ -20,5 +20,16 @@ namespace Service.MatchingEngine.PriceSource.Client
                 .SingleInstance();
             
         }
+
+        public static void RegisterMatchingEngineOrderBookClient(this ContainerBuilder builder, IMyNoSqlSubscriber myNoSqlSubscriber)
+        {
+            var subs = new MyNoSqlReadRepository<OrderBookNoSql>(myNoSqlSubscriber, OrderBookNoSql.TableName);
+            builder
+                .RegisterInstance(new OrderBookCache(subs))
+                .As<IOrderBookService>()
+                .AutoActivate()
+                .SingleInstance();
+
+        }
     }
 }

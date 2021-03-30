@@ -9,11 +9,13 @@
     <PackageReference Include="Grpc.Net.Client" Version="2.35.0" />
     <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.0.6" />
     <PackageReference Include="protobuf-net.Grpc" Version="1.0.147" />
+    <PackageReference Include="MyNoSqlServer.DataReader" Version="1.2.24" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Client\Service.MatchingEngine.PriceSource.Client.csproj" />
     <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
+    <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
   </ItemGroup>
 
 </Project>
