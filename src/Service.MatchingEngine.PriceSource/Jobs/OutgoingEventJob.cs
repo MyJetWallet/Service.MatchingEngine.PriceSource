@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
+using Newtonsoft.Json;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.Services;
 
@@ -12,6 +14,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 {
     public class OutgoingEventJob
     {
+        private readonly ILogger<OutgoingEventJob> _logger;
         private readonly ITradeVolumeAggregator _tradeVolumeAggregator;
         private readonly IOrderBookAggregator _orderBookAggregator;
         private long _lastSequenceId = 0;
@@ -22,6 +25,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             ITradeVolumeAggregator tradeVolumeAggregator,
             IOrderBookAggregator orderBookAggregator)
         {
+            _logger = logger;
             _tradeVolumeAggregator = tradeVolumeAggregator;
             _orderBookAggregator = orderBookAggregator;
             subscriber.Subscribe(HandleEvents);
@@ -33,22 +37,24 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
             foreach (var outgoingEvent in events.Where(e => e.Header.SequenceNumber > _lastSequenceId))
             {
-                var updatedOrders = outgoingEvent
-                    .Orders
-                    .Select(e => new OrderBookOrder(
-                        e.BrokerId,
-                        e.WalletId,
-                        e.ExternalId,
-                        decimal.Parse(e.Price),
-                        decimal.Parse(e.RemainingVolume),
-                        MapSide(e.Side),
-                        outgoingEvent.Header.SequenceNumber,
-                        e.AssetPairId,
-                        outgoingEvent.Header.Timestamp.ToDateTime(),
-                        OrderIsActive(e.Status)))
-                    .ToList();
+                try
+                {
+                    var updatedOrders = outgoingEvent
+                        .Orders
+                        .Select(e => new OrderBookOrder(
+                            e.BrokerId,
+                            e.WalletId,
+                            e.ExternalId,
+                            decimal.Parse(e.Price),
+                            string.IsNullOrEmpty(e.RemainingVolume) ? 0 : decimal.Parse(e.RemainingVolume),
+                            MapSide(e.Side),
+                            outgoingEvent.Header.SequenceNumber,
+                            e.AssetPairId,
+                            outgoingEvent.Header.Timestamp.ToDateTime(),
+                            OrderIsActive(e.Status)))
+                        .ToList();
 
-                var trades = outgoingEvent
+                    var trades = outgoingEvent
                         .Orders.SelectMany(i => i
                             .Trades
                             .Where(t => t.Role == ME.Contracts.OutgoingMessages.Order.Types.Trade.Types.TradeRole.Taker)
@@ -76,11 +82,17 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                         .ToList();
 
 
-                var tradesTask = _tradeVolumeAggregator.RegisterTrades(trades);
-                taskList.Add(tradesTask);
+                    var tradesTask = _tradeVolumeAggregator.RegisterTrades(trades);
+                    taskList.Add(tradesTask);
 
-                var task = _orderBookAggregator.RegisterOrderUpdates(updatedOrders);
-                taskList.Add(task);
+                    var task = _orderBookAggregator.RegisterOrderUpdates(updatedOrders);
+                    taskList.Add(task);
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex, "CAnnot handle ME event: {jsonText}", JsonConvert.SerializeObject(outgoingEvent));
+                    throw;
+                }
             }
 
             if (taskList.Any())
@@ -89,14 +101,14 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             _lastSequenceId = events.Max(e => e.Header.SequenceNumber);
         }
 
-        private static bool OrderIsActive(ME.Contracts.OutgoingMessages.Order.Types.OrderStatus status)
+        public static bool OrderIsActive(ME.Contracts.OutgoingMessages.Order.Types.OrderStatus status)
         {
             return status == ME.Contracts.OutgoingMessages.Order.Types.OrderStatus.Placed ||
                    status == ME.Contracts.OutgoingMessages.Order.Types.OrderStatus.Replaced ||
                    status == ME.Contracts.OutgoingMessages.Order.Types.OrderStatus.PartiallyMatched;
         }
 
-        private OrderSide MapSide(ME.Contracts.OutgoingMessages.Order.Types.OrderSide side)
+        public static OrderSide MapSide(ME.Contracts.OutgoingMessages.Order.Types.OrderSide side)
         {
             switch (side)
             {
