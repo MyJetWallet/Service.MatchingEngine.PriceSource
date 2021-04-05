@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetCoreDecorators;
+using ME.Contracts.OutgoingMessages;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
@@ -41,11 +42,12 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 {
                     var updatedOrders = outgoingEvent
                         .Orders
+                        //.Where(e => e.Status != Order.Types.OrderStatus.Rejected && e.Status != Order.Types.OrderStatus.UnknownStatus)
                         .Select(e => new OrderBookOrder(
                             e.BrokerId,
                             e.WalletId,
                             e.ExternalId,
-                            decimal.Parse(e.Price),
+                            string.IsNullOrEmpty(e.Price) ? 0 : decimal.Parse(e.Price),
                             string.IsNullOrEmpty(e.RemainingVolume) ? 0 : decimal.Parse(e.RemainingVolume),
                             MapSide(e.Side),
                             outgoingEvent.Header.SequenceNumber,
