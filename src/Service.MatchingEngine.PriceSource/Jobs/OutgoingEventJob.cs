@@ -7,6 +7,7 @@ using ME.Contracts.OutgoingMessages;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
+using MyJetWallet.Sdk.Service;
 using Newtonsoft.Json;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.Services;
@@ -35,6 +36,8 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         private async ValueTask HandleEvents(IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent> events)
         {
             var taskList = new List<Task>();
+
+            using var _ = MyTelemetry.StartActivity("Handle event OutgoingEvent")?.AddTag("event-count", events.Count);
 
             foreach (var outgoingEvent in events.Where(e => e.Header.SequenceNumber > _lastSequenceId))
             {
@@ -92,7 +95,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 }
                 catch(Exception ex)
                 {
-                    _logger.LogError(ex, "CAnnot handle ME event: {jsonText}", JsonConvert.SerializeObject(outgoingEvent));
+                    _logger.LogError(ex, "Cannot handle ME event: {jsonText}", JsonConvert.SerializeObject(outgoingEvent));
                     throw;
                 }
             }
