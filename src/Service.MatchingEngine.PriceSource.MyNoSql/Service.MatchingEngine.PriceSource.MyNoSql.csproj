@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MyJetWallet.Domain" Version="1.0.21" />
-    <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.2.24" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.23" />
+    <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.3.1" />
   </ItemGroup>
 
   <ItemGroup>

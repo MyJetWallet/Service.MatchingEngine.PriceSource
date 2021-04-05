@@ -17,6 +17,7 @@ namespace Service.MatchingEngine.PriceSource.Settings
         [YamlProperty("MatchingEnginePriceSource.MatchingEngine.OrderBookServiceGrpcUrl")]
         public string OrderBookServiceGrpcUrl { get; set; }
 
-        
+        [YamlProperty("MatchingEnginePriceSource.ZipkinUrl")]
+        public string ZipkinUrl { get; set; }
     }
 }

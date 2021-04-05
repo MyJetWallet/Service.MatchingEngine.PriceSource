@@ -9,6 +9,7 @@ using MyJetWallet.MatchingEngine.Grpc;
 using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
+using MyServiceBus.Abstractions;
 using MyServiceBus.TcpClient;
 using Service.MatchingEngine.EventBridge.ServiceBus;
 using Service.MatchingEngine.PriceSource.Jobs;
@@ -32,11 +33,14 @@ namespace Service.MatchingEngine.PriceSource.Modules
             ServiceBusLogger = Program.LogFactory.CreateLogger(nameof(MyServiceBusTcpClient));
 
             var serviceBusClient = new MyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName);
-            serviceBusClient.PlugPacketHandleExceptions(ex => ServiceBusLogger.LogError(ex as Exception, "Exception in MyServiceBusTcpClient"));
-            serviceBusClient.PlugSocketLogs((context, msg) => ServiceBusLogger.LogInformation($"MyServiceBusTcpClient[Socket {context?.Id}|{context?.Connected}|{context?.Inited}] {msg}"));
+            serviceBusClient.Log.AddLogException(ex => ServiceBusLogger.LogError(ex as Exception, "Exception in MyServiceBusTcpClient"));
+            serviceBusClient.Log.AddLogInfo(info => ServiceBusLogger.LogInformation(info));
+            serviceBusClient.SocketLogs.AddLogException((context, ex) => ServiceBusLogger.LogError(ex as Exception, $"[Socket {context?.Id}|{context?.Inited}]Exception in MyServiceBusTcpClient on Socket level"));
+            serviceBusClient.SocketLogs.AddLogInfo((context, info) => ServiceBusLogger.LogInformation($"MyServiceBusTcpClient[Socket {context?.Id}|{context?.Inited}] {info}"));
+
             builder.RegisterInstance(serviceBusClient).AsSelf().SingleInstance();
             
-            builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-1", false);
+            builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-1", TopicQueueType.Permanent);
 
             builder.RegisterType<OutgoingEventJob>().AutoActivate().SingleInstance();
 

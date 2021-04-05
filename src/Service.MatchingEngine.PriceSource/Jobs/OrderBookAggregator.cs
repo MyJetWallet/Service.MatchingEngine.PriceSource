@@ -8,8 +8,10 @@ using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
 using MyJetWallet.MatchingEngine.Grpc.Api;
+using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
+using OpenTelemetry.Trace;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 using Service.MatchingEngine.PriceSource.Services;
@@ -59,7 +61,10 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 foreach (var change in changes.Keys)
                 {
                     var manager = GetManager(change.Item1, change.Item2);
-                    books.Add(manager.GetState());
+                    var item = manager.GetState();
+                    books.Add(item);
+
+                    (item.BuyLevels.Count + item.SellLevels.Count).AddToActivityAsTag($"count.{item.PartitionKey}.{item.RowKey}");
                 }
             }
 
@@ -76,19 +81,6 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 }
 
                 await Task.WhenAll(tasks);
-
-                //foreach (var book in books)
-                //{
-                //    Console.WriteLine($"Book {book.RowKey}");
-                //    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
-                //    {
-                //        Console.WriteLine($"\t{level.Volume}\t{level.Price}\t");
-                //    }
-                //    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
-                //    {
-                //        Console.WriteLine($"\t\t{level.Price}\t{level.Volume}");
-                //    }
-                //}
             }
             catch (Exception ex)
             {
@@ -101,6 +93,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 }
 
                 _logger.LogError(ex, "Cannot save order books in NoSql");
+                Activity.Current?.SetStatus(Status.Error);
             }
 
             sw.Stop();
@@ -178,9 +171,13 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         private List<BidAsk> InitFromMe()
         {
+            using var activity = MyTelemetry.StartActivity("OrderBookAggregator stat init process");
+
             _logger.LogInformation($"OrderBookAggregator stat init process");
 
             var books = _bookServiceClient.OrderBookSnapshots();
+
+            activity?.AddTag("count-books", books.Count);
 
             var sw = new Stopwatch();
             sw.Start();
@@ -204,7 +201,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                             snapshot.Timestamp.ToDateTime(),
                             true));
                     }
-
+                    
                     _changedList[(snapshot.BrokerId, snapshot.Asset)] = snapshot.Asset;
                 }
 

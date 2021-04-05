@@ -116,7 +116,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 _orders.Values
                     .Where(e => e.Side == OrderSide.Buy)
                     .GroupBy(e => e.Price)
-                    .Select(e => new OrderBookLevel(
+                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
                         e.Key,
                         e.Sum(i => i.Volume),
                         e.Max(i => i.SequenceNumber)))
@@ -127,7 +127,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 _orders.Values
                     .Where(e => e.Side == OrderSide.Sell)
                     .GroupBy(e => e.Price)
-                    .Select(e => new OrderBookLevel(
+                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
                         e.Key,
                         e.Sum(i => i.Volume),
                         e.Max(i => i.SequenceNumber)))
