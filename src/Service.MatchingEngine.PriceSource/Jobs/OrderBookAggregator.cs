@@ -22,6 +22,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
     {
         private readonly ILogger<OrderBookAggregator> _logger;
         private readonly IMyNoSqlServerDataWriter<OrderBookNoSql> _writer;
+        private readonly IMyNoSqlServerDataWriter<DetailOrderBookNoSql> _writerDetail;
         private readonly IQuotePublisher _publisher;
         private readonly IOrderBookServiceClient _bookServiceClient;
         private readonly object _gate = new object();
@@ -34,12 +35,14 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         public OrderBookAggregator(
             ILogger<OrderBookAggregator> logger, 
-            IMyNoSqlServerDataWriter<OrderBookNoSql> writer, 
+            IMyNoSqlServerDataWriter<OrderBookNoSql> writer,
+            IMyNoSqlServerDataWriter<DetailOrderBookNoSql> writerDetail,
             IQuotePublisher publisher,
             IOrderBookServiceClient bookServiceClient)
         {
             _logger = logger;
             _writer = writer;
+            _writerDetail = writerDetail;
             _publisher = publisher;
             _bookServiceClient = bookServiceClient;
             _timer = new MyTaskTimer(nameof(OrderBookAggregator), TimeSpan.FromMilliseconds(1000),  logger, DoProcess);
@@ -48,6 +51,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         private async Task DoProcess()
         {
             var books = new List<OrderBookNoSql>();
+            var detailBooks = new List<DetailOrderBookNoSql>();
 
             var sw = new Stopwatch();
             sw.Start();
@@ -62,7 +66,9 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                 {
                     var manager = GetManager(change.Item1, change.Item2);
                     var item = manager.GetState();
+                    
                     books.Add(item);
+                    detailBooks.Add(manager.GetDetailState());
 
                     (item.BuyLevels.Count + item.SellLevels.Count).AddToActivityAsTag($"count.{item.PartitionKey}.{item.RowKey}");
                 }
@@ -79,6 +85,16 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                     index += 10;
                     tasks.Add(task);
                 }
+
+                index = 0;
+                while (index < detailBooks.Count)
+                {
+                    var task = _writerDetail.BulkInsertOrReplaceAsync(detailBooks.Skip(index).Take(10)).AsTask();
+                    index += 10;
+                    tasks.Add(task);
+                }
+
+                tasks.Count.AddToActivityAsTag("count-tasks");
 
                 await Task.WhenAll(tasks);
             }

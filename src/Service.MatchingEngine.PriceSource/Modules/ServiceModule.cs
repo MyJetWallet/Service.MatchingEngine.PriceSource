@@ -60,6 +60,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             builder.RegisterMatchingEngineGrpcClient();
 
             RegisterMyNoSqlWriter<OrderBookNoSql>(builder, OrderBookNoSql.TableName);
+            RegisterMyNoSqlWriter<DetailOrderBookNoSql>(builder, DetailOrderBookNoSql.TableName);
 
             builder.RegisterMatchingEngineGrpcClient(orderBookServiceGrpcUrl: Program.Settings.OrderBookServiceGrpcUrl);
 

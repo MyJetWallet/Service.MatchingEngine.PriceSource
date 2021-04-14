@@ -145,6 +145,45 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             return orderBook;
         }
 
+        public DetailOrderBookNoSql GetDetailState()
+        {
+            var orderBook = DetailOrderBookNoSql.Create(BrokerId, Symbol);
+
+            orderBook.BuyLevels =
+                _orders.Values
+                    .Where(e => e.Side == OrderSide.Buy)
+                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
+                        e.Price,
+                        e.Volume,
+                        e.SequenceNumber,
+                        e.WalletId,
+                        e.OrderId))
+                    .OrderByDescending(e => e.Price)
+                    .ToList();
+
+            orderBook.SellLevels =
+                _orders.Values
+                    .Where(e => e.Side == OrderSide.Sell)
+                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
+                        e.Price,
+                        e.Volume,
+                        e.SequenceNumber,
+                        e.WalletId,
+                        e.OrderId))
+                    .OrderBy(e => e.Price)
+                    .ToList();
+
+            orderBook.Bid = orderBook.BuyLevels.FirstOrDefault();
+            orderBook.Ask = orderBook.SellLevels.FirstOrDefault();
+
+            if (_orders.Any())
+            {
+                orderBook.LastSequenceId = _orders.Max(e => e.Value.SequenceNumber);
+            }
+
+            return orderBook;
+        }
+
         public BidAsk GetBestPrices()
         {
             return _bidAsk;
