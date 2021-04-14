@@ -29,6 +29,8 @@
     <Authors>MyJetWallet</Authors>
     <Company>MyJetWallet</Company>
     <Product>MyJetWallet</Product>
+    <PackageProjectUrl>https://github.com/MyJetWallet/Service.MatchingEngine.PriceSource</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MyJetWallet/Service.MatchingEngine.PriceSource</RepositoryUrl>
   </PropertyGroup>
 
   <Target Name="PackReferencedProjectOutputs" DependsOnTargets="BuildOnlySettings;ResolveReferences">
