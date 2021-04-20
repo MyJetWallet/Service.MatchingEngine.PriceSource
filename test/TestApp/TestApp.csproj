@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.Net.Client" Version="2.36.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.37.0" />
     <PackageReference Include="MyJetWallet.Domain.ServiceBus" Version="1.2.0" />
     <PackageReference Include="protobuf-net.Grpc" Version="1.0.152" />
     <PackageReference Include="MyNoSqlServer.DataReader" Version="1.3.1" />
