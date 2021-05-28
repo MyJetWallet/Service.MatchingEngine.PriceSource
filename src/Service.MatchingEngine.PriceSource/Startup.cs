@@ -40,7 +40,7 @@ namespace Service.MatchingEngine.PriceSource
             services.AddHostedService<ApplicationLifetimeManager>();
             //services.AddHostedService<QuoteSimulator>();
 
-            services.AddMyTelemetry(Program.Settings.ZipkinUrl);
+            services.AddMyTelemetry("SP-", Program.Settings.ZipkinUrl);
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
