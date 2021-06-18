@@ -1,10 +1,17 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MyNoSqlServer.DataReader;
+using MyServiceBus.Abstractions;
+using MyServiceBus.TcpClient;
 using ProtoBuf.Grpc.Client;
 using Service.MatchingEngine.PriceSource.Client;
 using Service.MatchingEngine.PriceSource.MyNoSql;
+using SimpleTrading.Abstraction.BidAsk;
+using SimpleTrading.ServiceBus.PublisherSubscriber.BidAsk;
 
 namespace TestApp
 {
@@ -17,6 +24,40 @@ namespace TestApp
             Console.Write("Press enter to start");
             Console.ReadLine();
 
+            //CheckNoSql();
+
+            using ILoggerFactory loggerFactory =
+                LoggerFactory.Create(builder =>
+                    builder.AddSimpleConsole(options =>
+                    {
+                        options.IncludeScopes = true;
+                        options.SingleLine = true;
+                        options.TimestampFormat = "hh:mm:ss ";
+                    }));
+
+            ILogger<Program> logger = loggerFactory.CreateLogger<Program>();
+
+            var serviceBusClient = new MyServiceBusTcpClient(() => "servicebus-test.infrastructure.svc.cluster.local:6421", "TestApp");
+
+            var candlePublisher = new SpotBidAskMyServiceBusSubscriber(serviceBusClient, "TestApp", TopicQueueType.Permanent, false);
+
+            serviceBusClient.Start();
+
+            candlePublisher.Subscribe(HandleTick);
+
+
+            Console.WriteLine("End");
+            Console.ReadLine();
+        }
+
+        private static ValueTask HandleTick(IBidAsk arg)
+        {
+            Console.WriteLine($"{arg.Id}  {arg.Bid} | {arg.Ask}   {arg.DateTime:O}");
+            return new ValueTask();
+        }
+
+        private static void CheckNoSql()
+        {
             var myNoSqlClient = new MyNoSqlTcpClient(() => "192.168.10.80:5125", "TestApp");
             var subs = new MyNoSqlReadRepository<OrderBookNoSql>(myNoSqlClient, OrderBookNoSql.TableName);
 
@@ -53,17 +94,11 @@ namespace TestApp
                 }
 
 
-
                 Console.WriteLine();
                 Console.WriteLine();
                 Console.Write("Symbol: ");
                 cmd = Console.ReadLine();
             }
-
-
-
-            Console.WriteLine("End");
-            Console.ReadLine();
         }
     }
 }

@@ -75,16 +75,42 @@ namespace Service.MatchingEngine.PriceSource.Services
             }
 
             lock (_gate) _buffer.Add(quote);
-            await _publisher.PublishAsync(quote);
-            await _candlePublisher.PublishAsync(new BidAskServiceBusModel()
-            {
-                Id = quote.Id,
-                Ask = quote.Ask,
-                Bid = quote.Bid,
-                DateTime = quote.DateTime
-            });
+            await PublishSpotQuote(quote);
+            await PublishCandlePrice(quote);
 
             _logger.LogTrace("Generate bid-ask price: {brokerId}:{symbol} {bid} | {ask} | {timestampText}",  quote.LiquidityProvider, quote.Id, quote.Bid, quote.Ask, quote.DateTime.ToString("O"));
+        }
+
+        private async Task PublishSpotQuote(BidAsk quote)
+        {
+            try
+            {
+                await _publisher.PublishAsync(quote);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot publish price to spot service bus {symbol}", quote.Id);
+            }
+        }
+
+        private async Task PublishCandlePrice(BidAsk quote)
+        {
+            try
+            {
+                var message = new BidAskServiceBusModel()
+                {
+                    Id = quote.Id,
+                    Ask = quote.Ask,
+                    Bid = quote.Bid,
+                    DateTime = quote.DateTime
+                };
+
+                await _candlePublisher.PublishAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot publish price to Candle service bus {symbol}", quote.Id);
+            }
         }
 
         public void Start()

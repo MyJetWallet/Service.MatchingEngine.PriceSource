@@ -23,15 +23,9 @@ jobs:
       with:
         format: YYYY-MM-DD HH:mm:ss
         utcOffset: "+00:00"
-        
-    - name: Generate build number
-      uses: einaregilsson/build-number@v3
-      id: buildnumber
-      with:
-        token: ${{secrets.github_token}}        
 
     - name: Build
-      run: dotnet build --configuration Release /p:AssemblyVersion=0.0.$BUILD_NUMBER
+      run: dotnet build --configuration Release /p:AssemblyVersion=0.0.${{ github.run_number }}
     - name: Test
       run: dotnet test --no-build --configuration Release
     - name: ls
