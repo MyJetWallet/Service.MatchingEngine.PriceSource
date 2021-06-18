@@ -2,12 +2,10 @@
 using Autofac;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
-using MyJetWallet.Domain.Prices;
 using MyJetWallet.Domain.ServiceBus;
-using MyJetWallet.Domain.ServiceBus.PublisherSubscriber.BidAsks;
 using MyJetWallet.MatchingEngine.Grpc;
-using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service;
+using MyJetWallet.Sdk.ServiceBus;
 using MyNoSqlServer.Abstractions;
 using MyServiceBus.Abstractions;
 using MyServiceBus.TcpClient;
@@ -15,6 +13,8 @@ using Service.MatchingEngine.EventBridge.ServiceBus;
 using Service.MatchingEngine.PriceSource.Jobs;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 using Service.MatchingEngine.PriceSource.Services;
+using SimpleTrading.Abstraction.BidAsk;
+using SimpleTrading.ServiceBus.PublisherSubscriber.BidAsk;
 
 namespace Service.MatchingEngine.PriceSource.Modules
 {
@@ -30,16 +30,8 @@ namespace Service.MatchingEngine.PriceSource.Modules
                 .AutoActivate()
                 .SingleInstance();
 
-            ServiceBusLogger = Program.LogFactory.CreateLogger(nameof(MyServiceBusTcpClient));
+            var serviceBusClient = builder.RegisterMyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName, Program.LogFactory);
 
-            var serviceBusClient = new MyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName);
-            serviceBusClient.Log.AddLogException(ex => ServiceBusLogger.LogError(ex as Exception, "Exception in MyServiceBusTcpClient"));
-            serviceBusClient.Log.AddLogInfo(info => ServiceBusLogger.LogInformation(info));
-            serviceBusClient.SocketLogs.AddLogException((context, ex) => ServiceBusLogger.LogError(ex as Exception, $"[Socket {context?.Id}|{context?.Inited}]Exception in MyServiceBusTcpClient on Socket level"));
-            serviceBusClient.SocketLogs.AddLogInfo((context, info) => ServiceBusLogger.LogInformation($"MyServiceBusTcpClient[Socket {context?.Id}|{context?.Inited}] {info}"));
-
-            builder.RegisterInstance(serviceBusClient).AsSelf().SingleInstance();
-            
             builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-1", TopicQueueType.Permanent);
 
             builder.RegisterType<OutgoingEventJob>().AutoActivate().SingleInstance();
@@ -68,7 +60,34 @@ namespace Service.MatchingEngine.PriceSource.Modules
             builder.RegisterTradeVolumePublisher(serviceBusClient);
 
 
+
+
+            RegisterCandlePublisher(builder);
+
+            //builder.RegisterMyServiceBusPublisher<BidAsk>()
+
+
             RegisterMyNoSqlWriter<BidAskNoSql>(builder, BidAskNoSql.TableName);
+        }
+
+        private static void RegisterCandlePublisher(ContainerBuilder builder)
+        {
+            ServiceBusLogger = Program.LogFactory.CreateLogger(nameof(MyServiceBusTcpClient));
+
+            var serviceBusClient = new MyServiceBusTcpClient(Program.ReloadedSettings(e => e.CandleServiceBusHostPort), ApplicationEnvironment.HostName);
+            serviceBusClient.Log.AddLogException(ex => ServiceBusLogger.LogError(ex as Exception, "[CANDLE] Exception in MyServiceBusTcpClient"));
+            serviceBusClient.Log.AddLogInfo(info => ServiceBusLogger.LogInformation($"[CANDLE] {info}"));
+            serviceBusClient.SocketLogs.AddLogException((context, ex) => ServiceBusLogger.LogError(ex as Exception, $"[CANDLE] [Socket {context?.Id}|{context?.Inited}]Exception in MyServiceBusTcpClient on Socket level"));
+            serviceBusClient.SocketLogs.AddLogInfo((context, info) => ServiceBusLogger.LogInformation($"[CANDLE] MyServiceBusTcpClient[Socket {context?.Id}|{context?.Inited}] {info}"));
+
+            var candlePublisher = new SpotBidAskMyServiceBusPublisher(serviceBusClient);
+
+            builder
+                .RegisterInstance(candlePublisher)
+                .As<IPublisher<IBidAsk>>()
+                .SingleInstance();
+
+            serviceBusClient.Start();
         }
 
         private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)

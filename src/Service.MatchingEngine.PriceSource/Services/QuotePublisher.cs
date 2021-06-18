@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 using Autofac;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
-using MyJetWallet.Domain.Prices;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.MatchingEngine.PriceSource.MyNoSql;
+using SimpleTrading.Abstraction.BidAsk;
+using SimpleTrading.ServiceBus.Models;
+using BidAsk = MyJetWallet.Domain.Prices.BidAsk;
 
 namespace Service.MatchingEngine.PriceSource.Services
 {
@@ -18,6 +20,7 @@ namespace Service.MatchingEngine.PriceSource.Services
         public const int WriterDelayMs = 1000;
 
         private readonly IPublisher<BidAsk> _publisher;
+        private readonly IPublisher<IBidAsk> _candlePublisher;
         private readonly IMyNoSqlServerDataWriter<BidAskNoSql> _writer;
         private readonly ILogger<QuotePublisher> _logger;
         private readonly object _gate = new object();
@@ -27,9 +30,10 @@ namespace Service.MatchingEngine.PriceSource.Services
         private readonly MyTaskTimer _timer;
 
 
-        public QuotePublisher(IPublisher<BidAsk> publisher, IMyNoSqlServerDataWriter<BidAskNoSql> writer, ILogger<QuotePublisher> logger)
+        public QuotePublisher(IPublisher<BidAsk> publisher, IPublisher<IBidAsk> candlePublisher, IMyNoSqlServerDataWriter<BidAskNoSql> writer, ILogger<QuotePublisher> logger)
         {
             _publisher = publisher;
+            _candlePublisher = candlePublisher;
             _writer = writer;
             _logger = logger;
             _timer = new MyTaskTimer(nameof(QuotePublisher), TimeSpan.FromMilliseconds(WriterDelayMs), logger, DoProcess);
@@ -72,6 +76,13 @@ namespace Service.MatchingEngine.PriceSource.Services
 
             lock (_gate) _buffer.Add(quote);
             await _publisher.PublishAsync(quote);
+            await _candlePublisher.PublishAsync(new BidAskServiceBusModel()
+            {
+                Id = quote.Id,
+                Ask = quote.Ask,
+                Bid = quote.Bid,
+                DateTime = quote.DateTime
+            });
 
             _logger.LogTrace("Generate bid-ask price: {brokerId}:{symbol} {bid} | {ask} | {timestampText}",  quote.LiquidityProvider, quote.Id, quote.Bid, quote.Ask, quote.DateTime.ToString("O"));
         }

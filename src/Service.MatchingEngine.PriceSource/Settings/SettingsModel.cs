@@ -11,6 +11,9 @@ namespace Service.MatchingEngine.PriceSource.Settings
         [YamlProperty("MatchingEnginePriceSource.SpotServiceBusHostPort")]
         public string SpotServiceBusHostPort { get; set; }
 
+        [YamlProperty("MatchingEnginePriceSource.CandleServiceBusHostPort")]
+        public string CandleServiceBusHostPort { get; set; }
+
         [YamlProperty("MatchingEnginePriceSource.MyNoSqlWriterUrl")]
         public string MyNoSqlWriterUrl { get; set; }
 
