@@ -8,6 +8,7 @@ using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
+using Newtonsoft.Json;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 using SimpleTrading.Abstraction.BidAsk;
 using SimpleTrading.ServiceBus.Models;
@@ -71,6 +72,7 @@ namespace Service.MatchingEngine.PriceSource.Services
         {
             if (quote.Ask > 0 && quote.Bid >= quote.Ask)
             {
+                _logger.LogWarning("Cannot publish quote: {dataJson}", JsonConvert.SerializeObject(quote));
                 return;
             }
 
