@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Autofac;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
@@ -11,6 +10,7 @@ using MyJetWallet.MatchingEngine.Grpc.Api;
 using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
+using Newtonsoft.Json;
 using OpenTelemetry.Trace;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.MyNoSql;
@@ -133,8 +133,20 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
             foreach (var bidAsk in prices)
             {
+                if (bidAsk.Ask > 0 && bidAsk.Bid >= bidAsk.Ask)
+                {
+                    ResetOrderBookState($"Reset order books. Detect negative spread: {JsonConvert.SerializeObject(bidAsk)}");
+                }
+
                 await _publisher.Register(bidAsk);
             }
+        }
+
+        private void ResetOrderBookState(string reason)
+        {
+            _logger.LogError(reason);
+            _isInit = false;
+            _data.Clear();
         }
 
         private List<BidAsk> InternalRegisterUpdates(List<OrderBookOrder> updates)
