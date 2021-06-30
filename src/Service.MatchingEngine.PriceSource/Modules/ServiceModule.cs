@@ -96,6 +96,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             builder.Register(ctx => new MyNoSqlServer.DataWriter.MyNoSqlServerDataWriter<TEntity>(
                     Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), table, true))
                 .As<IMyNoSqlServerDataWriter<TEntity>>()
+                .AutoActivate()
                 .SingleInstance();
         }
     }
