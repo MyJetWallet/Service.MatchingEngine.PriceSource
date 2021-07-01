@@ -39,11 +39,7 @@ namespace TestApp
 
             var serviceBusClient = new MyServiceBusTcpClient(() => "servicebus-test.infrastructure.svc.cluster.local:6421", "TestApp");
 
-            var candlePublisher = new SpotBidAskMyServiceBusSubscriber(serviceBusClient, "TestApp", TopicQueueType.Permanent, false);
 
-            serviceBusClient.Start();
-
-            candlePublisher.Subscribe(HandleTick);
 
 
             Console.WriteLine("End");

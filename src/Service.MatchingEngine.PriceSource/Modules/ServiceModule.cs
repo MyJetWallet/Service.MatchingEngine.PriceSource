@@ -80,7 +80,7 @@ namespace Service.MatchingEngine.PriceSource.Modules
             serviceBusClient.SocketLogs.AddLogException((context, ex) => ServiceBusLogger.LogError(ex as Exception, $"[CANDLE] [Socket {context?.Id}|{context?.Inited}]Exception in MyServiceBusTcpClient on Socket level"));
             serviceBusClient.SocketLogs.AddLogInfo((context, info) => ServiceBusLogger.LogInformation($"[CANDLE] MyServiceBusTcpClient[Socket {context?.Id}|{context?.Inited}] {info}"));
 
-            var candlePublisher = new SpotBidAskMyServiceBusPublisher(serviceBusClient);
+            var candlePublisher = new BidAskMyServiceBusPublisher(serviceBusClient, "spot-bidask");
 
             builder
                 .RegisterInstance(candlePublisher)
