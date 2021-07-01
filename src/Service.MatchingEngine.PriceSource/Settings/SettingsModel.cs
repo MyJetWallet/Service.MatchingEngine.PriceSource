@@ -1,8 +1,7 @@
-﻿using SimpleTrading.SettingsReader;
+﻿using MyYamlParser;
 
 namespace Service.MatchingEngine.PriceSource.Settings
 {
-    [YamlAttributesOnly]
     public class SettingsModel
     {
         [YamlProperty("MatchingEnginePriceSource.SeqServiceUrl")]
