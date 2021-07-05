@@ -16,6 +16,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
         private OrderBookOrder _bid;
         private BidAsk _bidAsk;
         private long _lastSequenceId= -1;
+        private DateTime _lastTimestamp = DateTime.MinValue;
 
         public string BrokerId { get; }
 
@@ -32,7 +33,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             var sequenceId = _lastSequenceId;
             var priceUpdated = false;
 
-            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId).Where(e => e.IsActive))
+            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId && e.Timestamp >= _lastTimestamp).Where(e => e.IsActive))
             {
                 _orders[order.OrderId] = order;
 
@@ -52,7 +53,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                     sequenceId = order.SequenceNumber;
             }
 
-            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId).Where(e => !e.IsActive))
+            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId && e.Timestamp >= _lastTimestamp).Where(e => !e.IsActive))
             {
                 var orderId = order.OrderId;
 

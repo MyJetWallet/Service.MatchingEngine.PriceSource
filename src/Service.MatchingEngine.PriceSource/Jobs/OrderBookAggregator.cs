@@ -239,7 +239,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
             _isInit = true;
 
             sw.Stop();
-
+            
             _logger.LogInformation($"OrderBookAggregator init time: {sw.Elapsed.ToString()}");
 
             return prices;
