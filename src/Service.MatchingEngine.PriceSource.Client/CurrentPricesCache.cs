@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using MyJetWallet.Domain.Prices;
+using MyNoSqlServer.Abstractions;
 using MyNoSqlServer.DataReader;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 
@@ -31,6 +33,11 @@ namespace Service.MatchingEngine.PriceSource.Client
         {
             var list = _reader.Get();
             return list.Select(e => e.Quote).ToList();
+        }
+
+        public IMyNoSqlServerDataReader<BidAskNoSql> SubscribeToUpdateEvents(Action<IReadOnlyList<BidAskNoSql>> updateSubscriber, Action<IReadOnlyList<BidAskNoSql>> deleteSubscriber)
+        {
+            return _reader.SubscribeToUpdateEvents(updateSubscriber, deleteSubscriber);
         }
     }
 }
