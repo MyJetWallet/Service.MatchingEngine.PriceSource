@@ -76,14 +76,14 @@ namespace TestApp
 
                 if (book != null)
                 {
-                    foreach (var level in book.SellLevels.OrderByDescending(e => e.Price))
+                    foreach (var level in book.Where(e => e.Volume < 0).OrderByDescending(e => e.Price))
                     {
                         Console.WriteLine($"\t{level.Price}\t{level.Volume}");
                     }
 
                     Console.WriteLine();
 
-                    foreach (var level in book.BuyLevels.OrderByDescending(e => e.Price))
+                    foreach (var level in book.Where(e => e.Volume > 0).OrderByDescending(e => e.Price))
                     {
                         Console.WriteLine($"{level.Volume}\t{level.Price}");
                     }

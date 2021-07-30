@@ -1,69 +1,47 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
+using MyJetWallet.Domain.Orders;
 using MyNoSqlServer.Abstractions;
 
 namespace Service.MatchingEngine.PriceSource.MyNoSql
 {
     public class OrderBookNoSql : MyNoSqlDbEntity
     {
-        public const string TableName = "myjetwallet-spot-order-books";
+        private const string Separator = "::";
 
-        public static string GeneratePartitionKey(string brokerId) => brokerId;
-        public static string GenerateRowKey(string symbol) => symbol;
+        public const string TableName = "myjetwallet-spot-order-books-v2";
 
-        public List<OrderBookLevel> BuyLevels { get; set; }
-        public List<OrderBookLevel> SellLevels { get; set; }
-        public OrderBookLevel Ask { get; set; }
-        public OrderBookLevel Bid { get; set; }
-        public long LastSequenceId { get; set; }
+        public static string GeneratePartitionKey(string brokerId, string symbol) => $"{brokerId}{Separator}{symbol}";
+        public static string GenerateRowKey(string orderId) => orderId;
 
-        public static OrderBookNoSql Create(string brokerId, string symbol)
+        public static (string, string) GetBrokerIdAndSymbol(string partitionKey)
+        {
+            var prm = partitionKey.Split(Separator);
+            return (prm[0], prm[1]);
+        }
+
+        public OrderBookLevelNoSql Level { get; set; }
+
+        public OrderSide Side { get; set; }
+
+
+        public static OrderBookNoSql Create(string brokerId, string symbol, OrderBookLevelNoSql level, OrderSide side)
         {
             return new OrderBookNoSql()
             {
-                PartitionKey = GeneratePartitionKey(brokerId),
-                RowKey = GenerateRowKey(symbol),
-                BuyLevels = new List<OrderBookLevel>(),
-                SellLevels = new List<OrderBookLevel>(),
-                Ask = null,
-                Bid = null,
-                LastSequenceId = 0
-            };
-        }
-    }
-
-    public class DetailOrderBookNoSql : MyNoSqlDbEntity
-    {
-        public const string TableName = "myjetwallet-spot-order-books-detail";
-
-        public static string GeneratePartitionKey(string brokerId) => brokerId;
-        public static string GenerateRowKey(string symbol) => symbol;
-
-        public List<OrderBookLevel> BuyLevels { get; set; }
-        public List<OrderBookLevel> SellLevels { get; set; }
-        public OrderBookLevel Ask { get; set; }
-        public OrderBookLevel Bid { get; set; }
-        public long LastSequenceId { get; set; }
-
-        public static DetailOrderBookNoSql Create(string brokerId, string symbol)
-        {
-            return new DetailOrderBookNoSql()
-            {
-                PartitionKey = GeneratePartitionKey(brokerId),
-                RowKey = GenerateRowKey(symbol),
-                BuyLevels = new List<OrderBookLevel>(),
-                SellLevels = new List<OrderBookLevel>(),
-                Ask = null,
-                Bid = null,
-                LastSequenceId = 0
+                PartitionKey = GeneratePartitionKey(brokerId, symbol),
+                RowKey = GenerateRowKey(level.OrderId),
+                Level = level,
+                Side = side
             };
         }
     }
 
     [DataContract]
-    public class OrderBookLevel
+    public class OrderBookLevelNoSql
     {
-        public OrderBookLevel(decimal price, decimal volume, long sequenceId, string walletId, string orderId)
+        public OrderBookLevelNoSql(decimal price, decimal volume, long sequenceId, string walletId, string orderId)
         {
             Price = price;
             Volume = volume;
@@ -72,16 +50,7 @@ namespace Service.MatchingEngine.PriceSource.MyNoSql
             OrderId = orderId;
         }
 
-        public OrderBookLevel(decimal price, decimal volume, long sequenceId)
-        {
-            Price = price;
-            Volume = volume;
-            SequenceId = sequenceId;
-            WalletId = string.Empty;
-            OrderId = string.Empty;
-        }
-
-        public OrderBookLevel()
+        public OrderBookLevelNoSql()
         {
         }
 

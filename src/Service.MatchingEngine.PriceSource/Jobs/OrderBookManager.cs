@@ -1,63 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Domain.Prices;
+using MyNoSqlServer.GrpcDataWriter;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.MyNoSql;
 
 namespace Service.MatchingEngine.PriceSource.Jobs
 {
+    /// <summary>
+    /// Manage particular order book
+    /// </summary>
     public class OrderBookManager
     {
-        private readonly Dictionary<string, OrderBookOrder> _orders = new Dictionary<string, OrderBookOrder>();
+        private readonly ILogger _logger;
+        private Dictionary<string, OrderBookNoSql> _data = new Dictionary<string, OrderBookNoSql>();
 
-        private OrderBookOrder _ask;
-        private OrderBookOrder _bid;
+        private OrderBookLevelNoSql _ask;
+        private OrderBookLevelNoSql _bid;
         private BidAsk _bidAsk;
-        private long _lastSequenceId= -1;
-        private DateTime _lastTimestamp = DateTime.MinValue;
 
         public string BrokerId { get; }
 
         public string Symbol { get; }
 
-        public OrderBookManager(string brokerId, string symbol)
+        public OrderBookManager(string brokerId, string symbol, ILogger logger)
         {
+            _logger = logger;
             BrokerId = brokerId;
             Symbol = symbol;
         }
 
-        public bool RegisterOrderUpdate(List<OrderBookOrder> updates)
+        /// <summary>
+        /// Register order and notify about best price update
+        /// </summary>
+        public BidAsk RegisterOrderUpdate(List<OrderBookOrder> updates, Dictionary<string, OrderBookNoSql> updateList, Dictionary<string, OrderBookNoSql> deleteList)
         {
-            var sequenceId = _lastSequenceId;
             var priceUpdated = false;
 
-            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId && e.Timestamp >= _lastTimestamp).Where(e => e.IsActive))
+            
+
+            foreach (var order in updates.Where(e => e.IsActive))
             {
-                _orders[order.OrderId] = order;
+                var orderLevel = ConvertOrder(order);
 
-                if (order.Side == OrderSide.Sell && _ask?.Price > order.Price)
+                if (!_data.TryGetValue(order.OrderId, out var entity))
                 {
-                    _ask = null;
+                    entity = OrderBookNoSql.Create(order.BrokerId, order.Symbol, orderLevel, order.Side);
+                    _data[order.OrderId] = entity;
+                }
+
+                entity.Level = orderLevel;
+
+                updateList[entity.Level.OrderId] = entity;
+
+                if (order.Side == OrderSide.Sell && (_ask == null || _ask?.Price > order.Price))
+                {
+                    _ask = entity.Level;
                     priceUpdated = true;
                 }
 
-                if (order.Side == OrderSide.Buy && _bid?.Price < order.Price)
+                if (order.Side == OrderSide.Buy && (_ask == null || _bid?.Price < order.Price))
                 {
-                    _bid = null;
+                    _bid = entity.Level;
                     priceUpdated = true;
                 }
-
-                if (order.SequenceNumber > sequenceId)
-                    sequenceId = order.SequenceNumber;
             }
 
-            foreach (var order in updates.Where(e => e.SequenceNumber > _lastSequenceId && e.Timestamp >= _lastTimestamp).Where(e => !e.IsActive))
+            foreach (var order in updates.Where(e => !e.IsActive))
             {
                 var orderId = order.OrderId;
 
-                _orders.Remove(orderId);
+                var orderLevel = ConvertOrder(order);
+
+                if (!_data.TryGetValue(order.OrderId, out var entity))
+                {
+                    entity = OrderBookNoSql.Create(order.BrokerId, order.Symbol, orderLevel, order.Side);
+                }
+
+                _data.Remove(orderId);
+                deleteList[orderId] = entity;
+                
 
                 if (_ask?.OrderId == orderId)
                 {
@@ -70,124 +95,70 @@ namespace Service.MatchingEngine.PriceSource.Jobs
                     _bid = null;
                     priceUpdated = true;
                 }
-
-                if (order.SequenceNumber > sequenceId)
-                    sequenceId = order.SequenceNumber;
             }
 
-            _lastSequenceId = sequenceId;
-            
-
-            if (_ask == null)
+            if (priceUpdated && _ask == null)
             {
-                _ask = _orders.Values.Where(e => e.Side == OrderSide.Sell).OrderBy(e => e.Price).FirstOrDefault();
-                priceUpdated = priceUpdated || _ask != null;
+                _ask = _data.Values.Where(e => e.Side == OrderSide.Sell).OrderBy(e => e.Level.Price).FirstOrDefault()?.Level;
             }
 
-            if (_bid == null)
+            if (priceUpdated && _bid == null)
             {
-                _bid = _orders.Values.Where(e => e.Side == OrderSide.Buy).OrderByDescending(e => e.Price).FirstOrDefault();
-                priceUpdated = priceUpdated || _bid != null;
+                _bid = _data.Values.Where(e => e.Side == OrderSide.Buy).OrderByDescending(e => e.Level.Price).FirstOrDefault()?.Level;
+            }
+
+            if (_ask != null && _bid != null && _ask.Price <= _bid.Price)
+            {
+                _logger.LogError("NEGATIVE SPREAD {symbol}; Ask: {ask}; Bid: {bid}", Symbol, _ask.Price, _bid.Price);
+                priceUpdated = false;
             }
 
             if (priceUpdated)
             {
-                var updateTs = updates.Any() ? updates.Max(e => e.Timestamp) : DateTime.MinValue;
+                var updateTs = updates.Max(e => e.Timestamp);
                 
-                _bidAsk = new BidAsk
+                var bidAsk = new BidAsk
                 {
                     Id = Symbol,
                     LiquidityProvider = BrokerId,
-                    Ask = _ask != null ? (double) _ask.Price : 0,
-                    Bid = _bid != null ? (double) _bid.Price : 0,
+                    Ask = _ask != null ? Convert.ToDouble(_ask.Price) : 0,
+                    Bid = _bid != null ? Convert.ToDouble(_bid.Price) : 0,
                     DateTime = updateTs
                 };
 
-                return true;
+                return bidAsk;
             }
 
-            return false;
+            return null;
         }
 
-        public OrderBookNoSql GetState()
+        private OrderBookLevelNoSql ConvertOrder(OrderBookOrder order)
         {
-            var orderBook = OrderBookNoSql.Create(BrokerId, Symbol);
+            return new OrderBookLevelNoSql(
+                Convert.ToDecimal(order.Price),
+                Convert.ToDecimal(order.Volume),
+                order.SequenceNumber,
+                order.WalletId,
+                order.OrderId);
+        }
 
-            orderBook.BuyLevels =
-                _orders.Values
-                    .Where(e => e.Side == OrderSide.Buy)
-                    .GroupBy(e => e.Price)
-                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
-                        e.Key,
-                        e.Sum(i => i.Volume),
-                        e.Max(i => i.SequenceNumber)))
-                    .OrderByDescending(e => e.Price)
-                    .ToList();
+        public BidAsk SetState(IEnumerable<OrderBookNoSql> entity)
+        {
+            _data = entity.ToDictionary(e => e.Level.OrderId) ?? throw new ArgumentNullException(nameof(entity), "Cannot init manager with null data");
 
-            orderBook.SellLevels =
-                _orders.Values
-                    .Where(e => e.Side == OrderSide.Sell)
-                    .GroupBy(e => e.Price)
-                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
-                        e.Key,
-                        e.Sum(i => i.Volume),
-                        e.Max(i => i.SequenceNumber)))
-                    .OrderBy(e => e.Price)
-                    .ToList();
-
-            orderBook.Bid = orderBook.BuyLevels.FirstOrDefault();
-            orderBook.Ask = orderBook.SellLevels.FirstOrDefault();
-
-            if (_orders.Any())
-            {
-                orderBook.LastSequenceId = _orders.Max(e => e.Value.SequenceNumber);
-            }
+            _ask = _data.Values.Where(e => e.Side == OrderSide.Sell).OrderBy(e => e.Level.Price).FirstOrDefault()?.Level;
+            _bid = _data.Values.Where(e => e.Side == OrderSide.Buy).OrderByDescending(e => e.Level.Price).FirstOrDefault()?.Level;
             
-            return orderBook;
-        }
-
-        public DetailOrderBookNoSql GetDetailState()
-        {
-            var orderBook = DetailOrderBookNoSql.Create(BrokerId, Symbol);
-
-            orderBook.BuyLevels =
-                _orders.Values
-                    .Where(e => e.Side == OrderSide.Buy)
-                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
-                        e.Price,
-                        e.Volume,
-                        e.SequenceNumber,
-                        e.WalletId,
-                        e.OrderId))
-                    .OrderByDescending(e => e.Price)
-                    .ToList();
-
-            orderBook.SellLevels =
-                _orders.Values
-                    .Where(e => e.Side == OrderSide.Sell)
-                    .Select(e => new PriceSource.MyNoSql.OrderBookLevel(
-                        e.Price,
-                        e.Volume,
-                        e.SequenceNumber,
-                        e.WalletId,
-                        e.OrderId))
-                    .OrderBy(e => e.Price)
-                    .ToList();
-
-            orderBook.Bid = orderBook.BuyLevels.FirstOrDefault();
-            orderBook.Ask = orderBook.SellLevels.FirstOrDefault();
-
-            if (_orders.Any())
+            var bidAsk = new BidAsk
             {
-                orderBook.LastSequenceId = _orders.Max(e => e.Value.SequenceNumber);
-            }
+                Id = Symbol,
+                LiquidityProvider = BrokerId,
+                Ask = _ask != null ? Convert.ToDouble(_ask.Price) : 0,
+                Bid = _bid != null ? Convert.ToDouble(_bid.Price) : 0,
+                DateTime = DateTime.UtcNow
+            };
 
-            return orderBook;
-        }
-
-        public BidAsk GetBestPrices()
-        {
-            return _bidAsk;
+            return bidAsk;
         }
     }
 }

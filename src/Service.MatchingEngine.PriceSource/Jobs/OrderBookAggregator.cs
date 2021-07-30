@@ -1,180 +1,136 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
-using MyJetWallet.Domain.Orders;
-using MyJetWallet.Domain.Prices;
-using MyJetWallet.MatchingEngine.Grpc.Api;
-using MyJetWallet.Sdk.Service;
-using MyJetWallet.Sdk.Service.Tools;
-using MyNoSqlServer.Abstractions;
-using Newtonsoft.Json;
-using OpenTelemetry.Trace;
+using MyNoSqlServer.GrpcDataWriter;
 using Service.MatchingEngine.PriceSource.Jobs.Models;
 using Service.MatchingEngine.PriceSource.MyNoSql;
-using Service.MatchingEngine.PriceSource.Services;
 
 namespace Service.MatchingEngine.PriceSource.Jobs
 {
-    public class OrderBookAggregator : IOrderBookAggregator, IDisposable
+    public class OrderBookAggregator : IOrderBookAggregator
     {
         private readonly ILogger<OrderBookAggregator> _logger;
-        private readonly IMyNoSqlServerDataWriter<OrderBookNoSql> _writer;
-        private readonly IMyNoSqlServerDataWriter<DetailOrderBookNoSql> _writerDetail;
-        private readonly IQuotePublisher _publisher;
-        private readonly IOrderBookServiceClient _bookServiceClient;
+        private readonly MyNoSqlGrpcDataWriter _writer;
         private readonly object _gate = new object();
-        private readonly MyTaskTimer _timer;
         private bool _isInit = false;
+
+        private readonly IPublisher<MyJetWallet.Domain.Prices.BidAsk> _pricePublisher;
+        private readonly IPublisher<SimpleTrading.Abstraction.BidAsk.IBidAsk> _candlePublisher;
 
         private readonly Dictionary<string, Dictionary<string, OrderBookManager>> _data = new Dictionary<string, Dictionary<string, OrderBookManager>>();
 
-        private Dictionary<(string, string), string> _changedList = new Dictionary<(string, string), string>();
-
         public OrderBookAggregator(
-            ILogger<OrderBookAggregator> logger, 
-            IMyNoSqlServerDataWriter<OrderBookNoSql> writer,
-            IMyNoSqlServerDataWriter<DetailOrderBookNoSql> writerDetail,
-            IQuotePublisher publisher,
-            IOrderBookServiceClient bookServiceClient)
+            ILogger<OrderBookAggregator> logger,
+            MyNoSqlGrpcDataWriter writer, IPublisher<MyJetWallet.Domain.Prices.BidAsk> pricePublisher, IPublisher<SimpleTrading.Abstraction.BidAsk.IBidAsk> candlePublisher)
         {
             _logger = logger;
             _writer = writer;
-            _writerDetail = writerDetail;
-            _publisher = publisher;
-            _bookServiceClient = bookServiceClient;
-            _timer = new MyTaskTimer(nameof(OrderBookAggregator), TimeSpan.FromMilliseconds(1000),  logger, DoProcess);
-        }
-
-        private async Task DoProcess()
-        {
-            var books = new List<OrderBookNoSql>();
-            var detailBooks = new List<DetailOrderBookNoSql>();
-
-            var sw = new Stopwatch();
-            sw.Start();
-
-            Dictionary<(string, string), string> changes;
-            lock (_gate)
-            {
-                changes = _changedList;
-                _changedList = new Dictionary<(string, string), string>();
-
-                foreach (var change in changes.Keys)
-                {
-                    var manager = GetManager(change.Item1, change.Item2);
-                    var item = manager.GetState();
-                    
-                    books.Add(item);
-                    detailBooks.Add(manager.GetDetailState());
-
-                    (item.BuyLevels.Count + item.SellLevels.Count).AddToActivityAsTag($"count.{item.PartitionKey}.{item.RowKey}");
-                }
-            }
-
-            try
-            {
-                var tasks = new List<Task>();
-
-                var index = 0;
-                while (index < books.Count)
-                {
-                    var task = _writer.BulkInsertOrReplaceAsync(books.Skip(index).Take(10)).AsTask();
-                    index += 10;
-                    tasks.Add(task);
-                }
-
-                index = 0;
-                while (index < detailBooks.Count)
-                {
-                    var task = _writerDetail.BulkInsertOrReplaceAsync(detailBooks.Skip(index).Take(10)).AsTask();
-                    index += 10;
-                    tasks.Add(task);
-                }
-
-                tasks.Count.AddToActivityAsTag("count-tasks");
-
-                await Task.WhenAll(tasks);
-            }
-            catch (Exception ex)
-            {
-                lock (_gate)
-                {
-                    foreach (var change in changes)
-                    {
-                        _changedList[change.Key] = change.Value;
-                    }
-                }
-
-                _logger.LogError(ex, "Cannot save order books in NoSql");
-                Activity.Current?.SetStatus(Status.Error);
-            }
-
-            sw.Stop();
-
-            _logger.LogDebug("Time to publish order books ({count}); time: {timeText}", books.Count, sw.Elapsed.ToString());
-
+            _pricePublisher = pricePublisher;
+            _candlePublisher = candlePublisher;
         }
         
 
         public async Task RegisterOrderUpdates(List<OrderBookOrder> updates)
         {
-            List<BidAsk> prices = new List<BidAsk>();
-            if (!_isInit)
-            {
-                var initPrices = InitFromMe();
-                prices.AddRange(initPrices);
-            }
-
-            var updatePrices = InternalRegisterUpdates(updates);
-            prices.AddRange(updatePrices);
-
-            foreach (var bidAsk in prices)
-            {
-                if (bidAsk.Ask > 0 && bidAsk.Bid >= bidAsk.Ask)
-                {
-                    ResetOrderBookState($"Reset order books. Detect negative spread: {JsonConvert.SerializeObject(bidAsk)}");
-                }
-
-                await _publisher.Register(bidAsk);
-            }
-        }
-
-        private void ResetOrderBookState(string reason)
-        {
-            _logger.LogError(reason);
-            _isInit = false;
-            _data.Clear();
-        }
-
-        private List<BidAsk> InternalRegisterUpdates(List<OrderBookOrder> updates)
-        {
-            List<BidAsk> prices = new List<BidAsk>();
+            var prices = new List<MyJetWallet.Domain.Prices.BidAsk>();
+            var updateList = new Dictionary<string, OrderBookNoSql>();
+            var deleteList = new Dictionary<string, OrderBookNoSql>();
 
             lock (_gate)
             {
+
+                if (!_isInit)
+                {
+                    throw new Exception($"{nameof(OrderBookAggregator)} does not inited!");
+                }
+
                 foreach (var brokerUpdates in updates.GroupBy(e => e.BrokerId))
                 {
                     foreach (var symbolUpdates in brokerUpdates.GroupBy(e => e.Symbol))
                     {
                         var manager = GetManager(brokerUpdates.Key, symbolUpdates.Key);
-                        var priceUpdated = manager.RegisterOrderUpdate(symbolUpdates.ToList());
+                        var price = manager.RegisterOrderUpdate(symbolUpdates.ToList(), updateList, deleteList);
 
-                        if (priceUpdated)
+                        if (price != null)
                         {
-                            prices.Add(manager.GetBestPrices());
+                            if (price.Ask > 0 && price.Ask <= price.Bid)
+                            {
+                                _logger.LogError("Detect negative spread in order book {symbol}. Ask: {ask}; Bid: {bid}", price.Id, price.Ask, price.Bid);
+                            }
+                            else
+                            {
+                                prices.Add(price);
+                            }
                         }
-
-                        _changedList[(brokerUpdates.Key, symbolUpdates.Key)] = manager.Symbol;
                     }
                 }
             }
 
-            return prices;
+            var transaction = _writer.BeginTransaction();
+
+            var entities = updateList.Values.Where(e => !deleteList.ContainsKey(e.Level.OrderId));
+
+            transaction.InsertOrReplaceEntities(entities);
+
+            foreach (var group in deleteList.Values.GroupBy(e => e.PartitionKey))
+            {
+                transaction.DeleteRows(OrderBookNoSql.TableName, group.Key, group.Select(e => e.RowKey).ToArray());
+            }
+
+            var taskList = new List<Task>();
+
+
+            var priceEntities = prices.Select(BidAskNoSql.Create).ToList();
+            transaction.InsertOrReplaceEntities(priceEntities);
+
+            taskList.Add(transaction.CommitAsync().AsTask());
+
+            foreach (var bidAsk in prices)
+            {
+                taskList.Add(PublishSpotQuote(bidAsk));
+                taskList.Add(PublishCandlePrice(bidAsk));
+            }
+
+            await Task.WhenAll(taskList);
         }
 
+        private async Task PublishSpotQuote(MyJetWallet.Domain.Prices.BidAsk quote)
+        {
+            try
+            {
+                await _pricePublisher.PublishAsync(quote);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot publish price to spot service bus {symbol}", quote.Id);
+                throw;
+            }
+        }
+
+        private async Task PublishCandlePrice(MyJetWallet.Domain.Prices.BidAsk quote)
+        {
+            try
+            {
+                var message = new SimpleTrading.ServiceBus.Models.BidAskServiceBusModel()
+                {
+                    Id = quote.Id,
+                    Ask = quote.Ask,
+                    Bid = quote.Bid,
+                    DateTime = quote.DateTime
+                };
+
+                await _candlePublisher.PublishAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot publish price to Candle service bus {symbol}", quote.Id);
+                throw;
+            }
+        }
+        
         private OrderBookManager GetManager(string broker, string symbol)
         {
             if (!_data.TryGetValue(broker, out var brokerItem))
@@ -185,7 +141,7 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
             if (!brokerItem.TryGetValue(symbol, out var manager))
             {
-                manager = new OrderBookManager(broker, symbol);
+                manager = new OrderBookManager(broker, symbol, _logger);
                 brokerItem[symbol] = manager;
             }
 
@@ -194,60 +150,29 @@ namespace Service.MatchingEngine.PriceSource.Jobs
 
         public void Start()
         {
-            _timer.Start();
-        }
-
-        private List<BidAsk> InitFromMe()
-        {
-            using var activity = MyTelemetry.StartActivity("OrderBookAggregator stat init process");
-
-            _logger.LogInformation($"OrderBookAggregator stat init process");
-
-            var books = _bookServiceClient.OrderBookSnapshots();
-
-            activity?.AddTag("count-books", books.Count);
-
-            var sw = new Stopwatch();
-            sw.Start();
-
-            List<BidAsk> prices;
+            var data = _writer.GetRowsAsync<OrderBookNoSql>().ToListAsync().GetAwaiter().GetResult();
 
             lock (_gate)
             {
-                var list = new List<OrderBookOrder>();
-
-                foreach (var snapshot in books)
+                foreach (var book in data.GroupBy(e => e.PartitionKey))
                 {
-                    foreach (var level in snapshot.Levels)
+                    var (brokerId, symbol) = OrderBookNoSql.GetBrokerIdAndSymbol(book.Key);
+                    var manager = new OrderBookManager(brokerId, symbol, _logger);
+                    var price = manager.SetState(book);
+
+                    if (!_data.TryGetValue(brokerId, out var symbolManagers))
                     {
-                        list.Add(new OrderBookOrder(snapshot.BrokerId, level.WalletId, level.OrderId,
-                            decimal.Parse(level.Price),
-                            decimal.Parse(level.Volume),
-                            snapshot.IsBuy ? OrderSide.Buy : OrderSide.Sell,
-                            0,
-                            snapshot.Asset,
-                            snapshot.Timestamp.ToDateTime(),
-                            true));
+                        symbolManagers = new Dictionary<string, OrderBookManager>();
+                        _data[brokerId] = symbolManagers;
                     }
-                    
-                    _changedList[(snapshot.BrokerId, snapshot.Asset)] = snapshot.Asset;
+
+                    symbolManagers[symbol] = manager;
+
+                    _logger.LogInformation("Book manager is inited. BrokerId: {brokerId}; Symbol:{symbol}; Count: {count}. Price: {ask} / {bid}", brokerId, symbol, book.Count(), price.Ask, price.Bid);
                 }
 
-                prices = InternalRegisterUpdates(list);
+                _isInit = true;
             }
-
-            _isInit = true;
-
-            sw.Stop();
-            
-            _logger.LogInformation($"OrderBookAggregator init time: {sw.Elapsed.ToString()}");
-
-            return prices;
-        }
-
-        public void Dispose()
-        {
-            _timer.Stop();
         }
     }
 }

@@ -13,13 +13,16 @@ namespace Service.MatchingEngine.PriceSource.Settings
         [YamlProperty("MatchingEnginePriceSource.CandleServiceBusHostPort")]
         public string CandleServiceBusHostPort { get; set; }
 
-        [YamlProperty("MatchingEnginePriceSource.MyNoSqlWriterUrl")]
-        public string MyNoSqlWriterUrl { get; set; }
-
         [YamlProperty("MatchingEnginePriceSource.MatchingEngine.OrderBookServiceGrpcUrl")]
         public string OrderBookServiceGrpcUrl { get; set; }
 
         [YamlProperty("MatchingEnginePriceSource.ZipkinUrl")]
         public string ZipkinUrl { get; set; }
+
+        [YamlProperty("MatchingEnginePriceSource.MyNoSqlWriterGrpc")]
+        public string MyNoSqlWriterGrpc { get; set; }
+
+        [YamlProperty("MatchingEnginePriceSource.MaxMeEventsBatchSize")]
+        public int MaxMeEventsBatchSize { get; set; }
     }
 }

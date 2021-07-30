@@ -7,6 +7,7 @@ using MyJetWallet.MatchingEngine.Grpc;
 using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.ServiceBus;
 using MyNoSqlServer.Abstractions;
+using MyNoSqlServer.GrpcDataWriter;
 using MyServiceBus.Abstractions;
 using MyServiceBus.TcpClient;
 using Service.MatchingEngine.EventBridge.ServiceBus;
@@ -24,15 +25,9 @@ namespace Service.MatchingEngine.PriceSource.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<QuotePublisher>()
-                .As<IQuotePublisher>()
-                .As<IStartable>()
-                .AutoActivate()
-                .SingleInstance();
-
             var serviceBusClient = builder.RegisterMyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName, Program.LogFactory);
 
-            builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-1", TopicQueueType.Permanent);
+            builder.RegisterMeEventSubscriber(serviceBusClient, "price-source-3", TopicQueueType.PermanentWithSingleConnection);
 
             builder.RegisterType<OutgoingEventJob>().AutoActivate().SingleInstance();
 
@@ -51,23 +46,22 @@ namespace Service.MatchingEngine.PriceSource.Modules
 
             builder.RegisterMatchingEngineGrpcClient();
 
-            RegisterMyNoSqlWriter<OrderBookNoSql>(builder, OrderBookNoSql.TableName);
-            RegisterMyNoSqlWriter<DetailOrderBookNoSql>(builder, DetailOrderBookNoSql.TableName);
+
+            MyNoSqlGrpcDataWriter noSqlWriter = MyNoSqlGrpcDataWriterFactory
+                .CreateNoSsl(Program.Settings.MyNoSqlWriterGrpc)
+                .RegisterSupportedEntity<OrderBookNoSql>(OrderBookNoSql.TableName)
+                .RegisterSupportedEntity<BidAskNoSql>(BidAskNoSql.TableName);
+
+
+            builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
+
 
             builder.RegisterMatchingEngineGrpcClient(orderBookServiceGrpcUrl: Program.Settings.OrderBookServiceGrpcUrl);
 
             builder.RegisterBidAskPublisher(serviceBusClient);
             builder.RegisterTradeVolumePublisher(serviceBusClient);
 
-
-
-
             RegisterCandlePublisher(builder);
-
-            //builder.RegisterMyServiceBusPublisher<BidAsk>()
-
-
-            RegisterMyNoSqlWriter<BidAskNoSql>(builder, BidAskNoSql.TableName);
         }
 
         private static void RegisterCandlePublisher(ContainerBuilder builder)
@@ -88,16 +82,6 @@ namespace Service.MatchingEngine.PriceSource.Modules
                 .SingleInstance();
 
             serviceBusClient.Start();
-        }
-
-        private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)
-            where TEntity : IMyNoSqlDbEntity, new()
-        {
-            builder.Register(ctx => new MyNoSqlServer.DataWriter.MyNoSqlServerDataWriter<TEntity>(
-                    Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), table, true))
-                .As<IMyNoSqlServerDataWriter<TEntity>>()
-                .AutoActivate()
-                .SingleInstance();
         }
     }
 }

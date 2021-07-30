@@ -19,7 +19,7 @@
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.5.5" />
     <PackageReference Include="MyJetWallet.Sdk.ServiceBus" Version="1.0.3" />
     <PackageReference Include="MyJetWallet.Service.MatchingEngine.EventBridge.ServiceBus" Version="1.2.2" />
-    <PackageReference Include="MyNoSqlServer.DataWriter" Version="1.3.1" />
+    <PackageReference Include="MyNoSqlServer.GrpcDataWriter" Version="1.4.2-rc03" />
     <PackageReference Include="MyServiceBus.TcpClient" Version="2.4.4" />
     <PackageReference Include="MySettingsReader" Version="1.2.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
@@ -31,7 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
     <ProjectReference Include="..\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
   </ItemGroup>
 

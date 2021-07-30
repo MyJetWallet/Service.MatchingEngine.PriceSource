@@ -5,8 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.Domain.Models\Service.MatchingEngine.PriceSource.Domain.Models.csproj" />
-    <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
     <ProjectReference PrivateAssets="All" Include="..\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
   </ItemGroup>
 
@@ -16,7 +14,7 @@
     <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.38.0" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="2.0.0" />
-    <PackageReference Include="MyNoSqlServer.DataReader" Version="1.3.1" />
+    <PackageReference Include="MyJetWallet.Sdk.NoSql" Version="1.2.0" />
     <PackageReference Include="System.ServiceModel.Primitives" Version="4.8.1" />
     <PackageReference Include="protobuf-net.Grpc" Version="1.0.152" />
   </ItemGroup>

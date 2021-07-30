@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Client\Service.MatchingEngine.PriceSource.Client.csproj" />
-    <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.Grpc\Service.MatchingEngine.PriceSource.Grpc.csproj" />
     <ProjectReference Include="..\..\src\Service.MatchingEngine.PriceSource.MyNoSql\Service.MatchingEngine.PriceSource.MyNoSql.csproj" />
   </ItemGroup>
 

@@ -15,10 +15,10 @@ namespace Service.MatchingEngine.PriceSource.Client
             _reader = reader;
         }
 
-        public OrderBookNoSql GetOrderBook(string brokerId, string symbol)
+        public List<OrderBookLevelNoSql> GetOrderBook(string brokerId, string symbol)
         {
-            var orderBook = _reader.Get(OrderBookNoSql.GeneratePartitionKey(brokerId), OrderBookNoSql.GenerateRowKey(symbol));
-            return orderBook;
+            var orderBook = _reader.Get(OrderBookNoSql.GeneratePartitionKey(brokerId, symbol));
+            return orderBook.Select(e => e.Level).ToList();
         }
     }
 }
