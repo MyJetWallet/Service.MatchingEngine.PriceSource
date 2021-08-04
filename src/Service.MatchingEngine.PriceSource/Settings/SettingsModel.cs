@@ -1,4 +1,5 @@
-﻿using MyYamlParser;
+﻿using MyJetWallet.Sdk.Service;
+using MyYamlParser;
 
 namespace Service.MatchingEngine.PriceSource.Settings
 {
@@ -24,5 +25,8 @@ namespace Service.MatchingEngine.PriceSource.Settings
 
         [YamlProperty("MatchingEnginePriceSource.MaxMeEventsBatchSize")]
         public int MaxMeEventsBatchSize { get; set; }
+
+        [YamlProperty("MatchingEnginePriceSource.ElkLogs")]
+        public LogElkSettings ElkLogs { get; set; }
     }
 }
